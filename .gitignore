@@ -1,0 +1,14 @@
+archive/*
+src/Debug/*
+src/Release/*
+src/x64/*
+src/.vs/*
+*.opendb
+*.filters
+*.user
+*.sln
+*.sdf
+*.avs
+*.avsi
+*.dll
+*.exe
