@@ -44,7 +44,7 @@ static inline int abs_diff(const int& x, const int& y)
     return x > y ? x - y : y - x;
 }
 
-static inline uint8_t clamp(int val, int min, int max)
+static inline uint8_t clamp(const int& val, const int& min, const int& max)
 {
     return static_cast<uint8_t>(std::max(std::min(val, max), min));
 }
@@ -235,19 +235,21 @@ proc_filter(const uint8_t* currp, const uint8_t* prevp, const uint8_t* nextp,
             const T p3 = load_half<T>(cb + x);
 
             const T d0 = div2_i16(abs_diff_i16<T, ARCH>(fpm, fnm));
-            const T d1 = avg_i16<T>(abs_diff_i16<T, ARCH>(load_half<T>(pt + x), p1),
-                                 abs_diff_i16<T, ARCH>(load_half<T>(pb + x), p3));
-            const T d2 = avg_i16<T>(abs_diff_i16<T, ARCH>(load_half<T>(nt + x), p1),
-                                 abs_diff_i16<T, ARCH>(load_half<T>(nb + x), p3));
+            const T d1 = avg_i16<T>(
+                    abs_diff_i16<T, ARCH>(load_half<T>(pt + x), p1),
+                    abs_diff_i16<T, ARCH>(load_half<T>(pb + x), p3));
+            const T d2 = avg_i16<T>(
+                    abs_diff_i16<T, ARCH>(load_half<T>(nt + x), p1),
+                    abs_diff_i16<T, ARCH>(load_half<T>(nb + x), p3));
 
             T diff = max3<T>(d0, d1, d2);
 
             if (SP_CHECK) {
-                const T p0 = sub_i16(
-                    avg_i16<T>(load_half<T>(fmpt + x), load_half<T>(fmnt + x)), p1);
+                const T p0 = sub_i16(avg_i16<T>(
+                        load_half<T>(fmpt + x), load_half<T>(fmnt + x)), p1);
 
-                const T p4 = sub_i16(
-                    avg_i16<T>(load_half<T>(fmpb + x), load_half<T>(fmnb + x)), p3);
+                const T p4 = sub_i16(avg_i16<T>(
+                        load_half<T>(fmpb + x), load_half<T>(fmnb + x)), p3);
 
                 const T p1_ = sub_i16(p2, p1);
                 const T p3_ = sub_i16(p2, p3);
@@ -264,7 +266,8 @@ proc_filter(const uint8_t* currp, const uint8_t* prevp, const uint8_t* nextp,
             } else {
                 sp_pred = calc_spatial_pred<T>(ct + x, cb + x, avg_i16(p1, p3));
             }
-            const T dst = clamp_i16<T>(sp_pred, sub_i16(p2, diff), add_i16(p2, diff));
+            const T dst = clamp_i16<T>(
+                    sp_pred, sub_i16(p2, diff), add_i16(p2, diff));
 
             store_half<T>(dstp + x, dst);
         }

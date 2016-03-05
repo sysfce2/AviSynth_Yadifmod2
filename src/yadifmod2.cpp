@@ -31,7 +31,7 @@
 #include "yadifmod2.h"
 
 
-YadifMod::YadifMod(PClip c, PClip e, int o, int f, int m, arch_t arch) :
+YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, arch_t arch) :
     GenericVideoFilter(c), edeint(e), order(o), field(f), mode(m)
 {
     numPlanes = vi.IsY8() ? 1 : 3;
@@ -59,12 +59,12 @@ interp(uint8_t* dstp, const uint8_t* srcp0, int pitch, int width)
 {
     const uint8_t* srcp1 = srcp0 + pitch * 2;
     for (int x = 0; x < width; ++x) {
-        dstp[x] = (srcp0[x] + srcp1[x] + 1) >> 1;
+        dstp[x] = (srcp0[x] + srcp1[x] + 1) / 2;
     }
 }
 
 
-PVideoFrame __stdcall YadifMod::GetFrame(int n, ise_t* env)
+PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
 {
     const int planes[3] = { PLANAR_Y, PLANAR_U, PLANAR_V };
     const int nf = viSrc.num_frames;
@@ -180,7 +180,7 @@ static void validate(bool cond, const char* msg, ise_t* env)
 }
 
 static AVSValue __cdecl
-create_yadifmod(AVSValue args, void* user_data, ise_t* env)
+create_yadifmod2(AVSValue args, void* user_data, ise_t* env)
 {
     PClip child = args[0].AsClip();
     const VideoInfo& vi = child->GetVideoInfo();
@@ -215,7 +215,7 @@ create_yadifmod(AVSValue args, void* user_data, ise_t* env)
              "opt must be set to -1(auto), 0(C), 1(SSE2), 2(SSSE3) or 3(AVX2).", env);
     arch_t arch = get_arch(opt);
 
-    return new YadifMod(child, edeint, order, field, mode, arch);
+    return new YadifMod2(child, edeint, order, field, mode, arch);
 }
 
 
@@ -233,6 +233,6 @@ AvisynthPluginInit3(ise_t* env, const AVS_Linkage* vectors)
                      "[mode]i"
                      "[edeint]c"
                      "[opt]i",
-                     create_yadifmod, nullptr);
+                     create_yadifmod2, nullptr);
     return "yadifmod2 = yadif + yadifmod ... ver. " YADIF_MOD_2_VERSION;
 }

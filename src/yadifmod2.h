@@ -59,7 +59,7 @@ proc_filter_t get_main_proc(bool sp_check, bool has_edeint, arch_t arcg);
 
 
 
-class YadifMod : public GenericVideoFilter {
+class YadifMod2 : public GenericVideoFilter {
     PClip edeint;
     VideoInfo viSrc;
     int order;
@@ -70,9 +70,9 @@ class YadifMod : public GenericVideoFilter {
     proc_filter_t mainProc;
 
 public:
-    YadifMod(PClip child, PClip edeint, int order, int field, int mode,
+    YadifMod2(PClip child, PClip edeint, int order, int field, int mode,
              arch_t arch);
-    ~YadifMod() {}
+    ~YadifMod2() {}
     PVideoFrame __stdcall GetFrame(int n, ise_t* env);
 };
 
