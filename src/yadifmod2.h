@@ -61,7 +61,7 @@ proc_filter_t get_main_proc(bool sp_check, bool has_edeint, arch_t arcg);
 
 class YadifMod2 : public GenericVideoFilter {
     PClip edeint;
-    VideoInfo viSrc;
+    int nfSrc;
     int order;
     int field;
     int mode;

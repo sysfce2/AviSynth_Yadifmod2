@@ -36,7 +36,7 @@ YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, arch_t arch) :
 {
     numPlanes = vi.IsY8() ? 1 : 3;
 
-    memcpy(&viSrc, &vi, sizeof(vi));
+    nfSrc = vi.num_frames;
 
     if (mode == 1 || mode == 3) {
         vi.num_frames *= 2;
@@ -67,7 +67,6 @@ interp(uint8_t* dstp, const uint8_t* srcp0, int pitch, int width)
 PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
 {
     const int planes[3] = { PLANAR_Y, PLANAR_U, PLANAR_V };
-    const int nf = viSrc.num_frames;
 
     PVideoFrame edeint;
     if (this->edeint) {
@@ -82,7 +81,7 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
 
     auto curr = child->GetFrame(n, env);
     auto prev = child->GetFrame(std::max(n - 1, 0), env);
-    auto next = child->GetFrame(std::min(n + 1, nf - 1), env);
+    auto next = child->GetFrame(std::min(n + 1, nfSrc - 1), env);
     auto dst = env->NewVideoFrame(vi, 32);
 
     for (int p = 0; p < numPlanes; ++p) {

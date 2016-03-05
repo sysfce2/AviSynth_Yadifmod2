@@ -1,7 +1,7 @@
 /*
     simd.h
 
-    This file is a part of yadifmod2
+    This file is a part of yadifmod2.
 
     Copyright (C) 2016 OKA Motofumi
 
@@ -20,8 +20,8 @@
 */
 
 
-#ifndef YADIF_MOD_SIMD_H
-#define YADIF_MOD_SIMD_H
+#ifndef YADIF_MOD_2_SIMD_H
+#define YADIF_MOD_2_SIMD_H
 
 #include <immintrin.h>
 #include "yadifmod2.h"
