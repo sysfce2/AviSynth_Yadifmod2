@@ -1,25 +1,25 @@
 /*
     yadifmod2 : yadif + yadifmod for avysynth2.6/Avisynth+
         Copyright (C) 2016 OKA Motofumi
-    
+
     yadifmod : Modification of Fizick's yadif avisynth filter.
         Copyright (C) 2007 Kevin Stone aka tritical
-    
+
     Yadif C-plugin for Avisynth 2.5 : Port from MPlayer filter
         Copyright (C) 2007 Alexander G. Balakhnin aka Fizick
-    
+
     YADIF : Yet Another DeInterlacing Filter
         Copyright (C) 2006 Michael Niedermayer <michaelni@gmx.at>
-    
+
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation.
-    
+
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
-    
+
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
@@ -82,7 +82,7 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
     auto curr = child->GetFrame(n, env);
     auto prev = child->GetFrame(std::max(n - 1, 0), env);
     auto next = child->GetFrame(std::min(n + 1, nfSrc - 1), env);
-    auto dst = env->NewVideoFrame(vi, 32);
+    auto dst = env->NewVideoFrame(vi);
 
     for (int p = 0; p < numPlanes; ++p) {
 
@@ -121,7 +121,7 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
             edeintp = edeint->GetReadPtr(plane);
             epitch = edeint->GetPitch(plane);
         }
-        
+
         uint8_t* dstp = dst->GetWritePtr(plane);
         const int dpitch = dst->GetPitch(plane);
 
@@ -209,7 +209,7 @@ create_yadifmod2(AVSValue args, void* user_data, ise_t* env)
                  "edeint clip's number of frames doesn't match.", env);
     }
 
-    int opt = args[5].AsInt(2);
+    int opt = args[5].AsInt(-1);
     validate(opt >= -1 && opt <= 3,
              "opt must be set to -1(auto), 0(C), 1(SSE2), 2(SSSE3) or 3(AVX2).", env);
     arch_t arch = get_arch(opt);

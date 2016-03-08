@@ -3,16 +3,16 @@
 
 	yadifmod2 = yadif + yadifmod
 
-###Info:
+### Info:
 
-	version 0.0.0
+	version 0.0.1
 
-###Requirement:
+### Requirement:
 	- Avisynth2.6.0final/Avisynth+r1576 or greater.
 	- WindowsVista SP2 or later.
 	- Visual C++ Redistributable Packages for Visual Studio 2015.
 
-###Syntax:
+### Syntax:
 
 	yadifmod2(clip, int "order", int "field", int "mode", clip "edeint", int "opt")
 
@@ -61,20 +61,24 @@
 
 		Controls which cpu optimizations are used.
 
-		-1 = autodetect
+		-1(default) = autodetect
 		 0 = force C routine
 		 1 = force SSE2 routine
-		 2(default) = force SSE2 + SSSE3 routine
+		 2 = force SSE2 + SSSE3 routine
 		 3 = force AVX2 routine
 
-		Since Avisynth2.6.0 has a memory alignment bug, it is almost impossible to use AVX2 on Avisynth2.6.0.
-		Avisynth+ is fixed this already.
-		Thus, don't set this to -1 or 3 if you are using Avisynth2.6.0.
-
-###Note:
+### Note:
 
 		- yadifmod2_avx.dll is for AVX supported CPUs.(it is compiled with /arch:AVX).
 
+### Changelog:
+
+	0.0.0(20160305)
+		initial release
+
+	0.0.1(20160308)
+		Chage default value of 'opt' to -1 and remove wrong description.
+		This filter does not require 32byte alignment.
 ###Source code:
 
 	https://github.com/chikuzen/yadifmod2/
