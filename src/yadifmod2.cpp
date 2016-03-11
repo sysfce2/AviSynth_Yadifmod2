@@ -174,7 +174,7 @@ static arch_t get_arch(int opt)
 static void validate(bool cond, const char* msg, ise_t* env)
 {
     if (!cond) {
-        env->ThrowError("yadifmod: %s", msg);
+        env->ThrowError("yadifmod2: %s", msg);
     }
 }
 

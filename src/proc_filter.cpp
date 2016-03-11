@@ -51,8 +51,7 @@ static inline uint8_t clamp(const int& val, const int& min, const int& max)
 
 
 template <int N>
-static inline int
-calc_slanting_score(const uint8_t* ct, const uint8_t* cb)
+static inline int calc_score(const uint8_t* ct, const uint8_t* cb)
 {
     return abs_diff(ct[-1 + N], cb[-1 - N]) + abs_diff(ct[N], cb[-N]) +
         abs_diff(ct[1 + N], cb[1 - N]);
@@ -62,26 +61,25 @@ calc_slanting_score(const uint8_t* ct, const uint8_t* cb)
 static inline int calc_spatial_pred(const uint8_t* ct, const uint8_t* cb)
 {
     int pred = average(ct[0], cb[0]);
-    int score = abs_diff(ct[-1], cb[-1]) + abs_diff(ct[0], cb[0]) +
-                abs_diff(ct[1], cb[1]) - 1;
+    int score = calc_score<0>(ct, cb) - 1;
 
-    int sl_score = calc_slanting_score<-1>(ct, cb);
+    int sl_score = calc_score<-1>(ct, cb);
     if (sl_score < score) {
         score = sl_score;
         pred = average(ct[-1], cb[1]);
 
-        sl_score = calc_slanting_score<-2>(ct, cb);
+        sl_score = calc_score<-2>(ct, cb);
         if (sl_score < score) {
             pred = average(ct[-2], cb[2]);
         }
     }
 
-    sl_score = calc_slanting_score<1>(ct, cb);
+    sl_score = calc_score<1>(ct, cb);
     if (sl_score < score) {
         score = sl_score;
         pred = average(ct[1], cb[-1]);
 
-        sl_score = calc_slanting_score<2>(ct, cb);
+        sl_score = calc_score<2>(ct, cb);
         if (sl_score < score) {
             pred = average(ct[2], cb[-2]);
         }

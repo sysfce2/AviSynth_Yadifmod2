@@ -239,12 +239,12 @@ SFINLINE T minus_i16(const T& x)
 
 SFINLINE __m128i abs_diff_u8(const __m128i& x, const __m128i& y)
 {
-   return _mm_max_epu8(_mm_subs_epu8(x, y), _mm_subs_epu8(y, x));
+   return _mm_or_si128(_mm_subs_epu8(x, y), _mm_subs_epu8(y, x));
 }
 
 SFINLINE __m256i abs_diff_u8(const __m256i& x, const __m256i& y)
 {
-    return _mm256_max_epu8(_mm256_subs_epu8(x, y), _mm256_subs_epu8(y, x));
+    return _mm256_or_si256(_mm256_subs_epu8(x, y), _mm256_subs_epu8(y, x));
 }
 
 template <int N>
