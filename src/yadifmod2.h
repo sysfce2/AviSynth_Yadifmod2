@@ -35,7 +35,7 @@
 #include <windows.h>
 #include <avisynth.h>
 
-#define YADIF_MOD_2_VERSION "0.0.0"
+#define YADIF_MOD_2_VERSION "0.0.2"
 
 
 typedef IScriptEnvironment ise_t;
