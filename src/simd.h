@@ -180,12 +180,12 @@ SFINLINE __m256i sub_i16(const __m256i& x, const __m256i& y)
 
 SFINLINE __m128i add_i16(const __m128i& x, const __m128i& y)
 {
-    return _mm_adds_epi16(x, y);
+    return _mm_add_epi16(x, y);
 }
 
 SFINLINE __m256i add_i16(const __m256i& x, const __m256i& y)
 {
-    return _mm256_adds_epi16(x, y);
+    return _mm256_add_epi16(x, y);
 }
 
 SFINLINE __m128i div2_i16(const __m128i& x)

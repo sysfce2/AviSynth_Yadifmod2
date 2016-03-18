@@ -161,20 +161,10 @@ proc_filter_c(const uint8_t* currp, const uint8_t* prevp, const uint8_t* nextp,
 template <typename T, arch_t ARCH, int N>
 SFINLINE T calc_score(const uint8_t* ct, const uint8_t* cb)
 {
-    T sum = abs_diff_i16<T, ARCH>(load_half<T>(ct - 1 + N), load_half<T>(cb - 1 - N));
-    T absdiff = abs_diff_i16<T, ARCH>(load_half<T>(ct + N), load_half<T>(cb - N));
-    sum = add_i16(sum, absdiff);
-    absdiff = abs_diff_i16<T, ARCH>(load_half<T>(ct + 1 + N), load_half<T>(cb + 1 - N));
-    return add_i16(sum, absdiff);
-}
-
-
-template <typename T>
-SFINLINE T
-update_pred(const uint8_t* ct, const uint8_t* cb, const T& mask, const T& pred)
-{
-    const T new_pred = avg_i16(load_half<T>(ct), load_half<T>(cb));
-    return blendv(pred, new_pred, mask);
+    T absdiff0 = abs_diff_i16<T, ARCH>(load_half<T>(ct + N - 1), load_half<T>(cb - N - 1));
+    T absdiff1 = abs_diff_i16<T, ARCH>(load_half<T>(ct + N),     load_half<T>(cb - N));
+    T absdiff2 = abs_diff_i16<T, ARCH>(load_half<T>(ct + N + 1), load_half<T>(cb - N + 1));
+    return add_i16(add_i16(absdiff0, absdiff1), absdiff2);
 }
 
 
@@ -186,25 +176,24 @@ SFINLINE T calc_spatial_pred(const uint8_t* ct, const uint8_t* cb)
     T pred = avg_i16(load_half<T>(ct), load_half<T>(cb));
 
     T sl_score1 = calc_score<T, ARCH, -1>(ct, cb);
-    T mask1 = cmpgt_i16(score, sl_score1);
-    pred = update_pred(ct - 1, cb + 1, mask1, pred);
+    T sl_score2 = calc_score<T, ARCH, -2>(ct, cb);
+    T sl_pred1 = avg_i16(load_half<T>(ct - 1), load_half<T>(cb + 1));
+    T sl_pred2 = avg_i16(load_half<T>(ct - 2), load_half<T>(cb + 2));
+    T mask = cmpgt_i16(sl_score1, sl_score2);
+    T sl_pred = blendv(sl_pred1, sl_pred2, mask);
+    mask = cmpgt_i16(score, sl_score1);
+    pred = blendv(pred, sl_pred, mask);
     score = min_i16(score, sl_score1);
 
-    T sl_score2 = calc_score<T, ARCH, -2>(ct, cb);
-    T mask2 = cmpgt_i16(sl_score1, sl_score2);
-    mask2 = and_reg(mask1, mask2);
-    pred = update_pred(ct - 2, cb + 2, mask2, pred);
-    score = blendv(score, sl_score2, mask2);
 
     sl_score1 = calc_score<T, ARCH, 1>(ct, cb);
-    mask1 = cmpgt_i16(score, sl_score1);
-    pred = update_pred(ct + 1, cb - 1, mask1, pred);
-    score = min_i16(score, sl_score1);
-
     sl_score2 = calc_score<T, ARCH, 2>(ct, cb);
-    mask2 = cmpgt_i16(sl_score1, sl_score2);
-    mask2 = and_reg(mask1, mask2);
-    return update_pred(ct + 2, cb - 2, mask2, pred);
+    sl_pred1 = avg_i16(load_half<T>(ct + 1), load_half<T>(cb - 1));
+    sl_pred2 = avg_i16(load_half<T>(ct + 2), load_half<T>(cb - 2));
+    mask = cmpgt_i16(sl_score1, sl_score2);
+    sl_pred = blendv(sl_pred1, sl_pred2, mask);
+    mask = cmpgt_i16(score, sl_score1);
+    return blendv(pred, sl_pred, mask);
 }
 
 

@@ -5,7 +5,7 @@
 
 ### Info:
 
-	version 0.0.1
+	version 0.0.2
 
 ### Requirement:
 	- Avisynth2.6.0final/Avisynth+r1576 or greater.
@@ -79,6 +79,11 @@
 	0.0.1(20160308)
 		Chage default value of 'opt' to -1 and remove wrong description.
 		This filter does not require 32byte alignment.
+
+	0.0.2(20160318)
+		Fix wrong calculation of spatial predictions when opt > 1.
+		Thanks to Fizick the report.
+
 ###Source code:
 
 	https://github.com/chikuzen/yadifmod2/
