@@ -5,7 +5,7 @@
 
 ### Info:
 
-	version 0.0.2
+	version 0.0.3
 
 ### Requirement:
 	- Avisynth2.6.0final/Avisynth+r1576 or greater.
@@ -71,6 +71,7 @@
 
 		- yadifmod2_avx.dll is for AVX supported CPUs.(it is compiled with /arch:AVX).
 
+
 ### Changelog:
 
 	0.0.0(20160305)
@@ -83,6 +84,11 @@
 	0.0.2(20160318)
 		Fix wrong calculation of spatial predictions when opt > 1.
 		Thanks to Fizick the report.
+
+	0.0.3(20160320)
+		Add missing prediction score update.
+		Also, fix previous frame position when n == 0.
+		now, the outputs of yadifmod2 w/o edeint clip are almost same as yadif1.7 except edge part of image.
 
 ###Source code:
 
