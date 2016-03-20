@@ -66,6 +66,7 @@ class YadifMod2 : public GenericVideoFilter {
     int field;
     int mode;
     int numPlanes;
+    int prev_first;
 
     proc_filter_t mainProc;
 

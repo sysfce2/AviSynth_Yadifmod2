@@ -50,36 +50,36 @@ static inline uint8_t clamp(const int& val, const int& min, const int& max)
 }
 
 
-template <int N>
-static inline int calc_score(const uint8_t* ct, const uint8_t* cb)
+static inline int calc_score(const uint8_t* ct, const uint8_t* cb, int n)
 {
-    return abs_diff(ct[-1 + N], cb[-1 - N]) + abs_diff(ct[N], cb[-N]) +
-        abs_diff(ct[1 + N], cb[1 - N]);
+    return abs_diff(ct[-1 + n], cb[-1 - n]) + abs_diff(ct[n], cb[-n]) +
+        abs_diff(ct[1 + n], cb[1 - n]);
 }
 
 
 static inline int calc_spatial_pred(const uint8_t* ct, const uint8_t* cb)
 {
     int pred = average(ct[0], cb[0]);
-    int score = calc_score<0>(ct, cb) - 1;
+    int score = calc_score(ct, cb, 0) - 1;
 
-    int sl_score = calc_score<-1>(ct, cb);
+    int sl_score = calc_score(ct, cb, -1);
     if (sl_score < score) {
         score = sl_score;
         pred = average(ct[-1], cb[1]);
 
-        sl_score = calc_score<-2>(ct, cb);
+        sl_score = calc_score(ct, cb, -2);
         if (sl_score < score) {
+            score = sl_score;
             pred = average(ct[-2], cb[2]);
         }
     }
 
-    sl_score = calc_score<1>(ct, cb);
+    sl_score = calc_score(ct, cb, 1);
     if (sl_score < score) {
         score = sl_score;
         pred = average(ct[1], cb[-1]);
 
-        sl_score = calc_score<2>(ct, cb);
+        sl_score = calc_score(ct, cb, 2);
         if (sl_score < score) {
             pred = average(ct[2], cb[-2]);
         }
@@ -158,12 +158,12 @@ proc_filter_c(const uint8_t* currp, const uint8_t* prevp, const uint8_t* nextp,
 
 /* --- SIMD version -------------------------------------------------------- */
 
-template <typename T, arch_t ARCH, int N>
-SFINLINE T calc_score(const uint8_t* ct, const uint8_t* cb)
+template <typename T, arch_t ARCH>
+SFINLINE T calc_score(const uint8_t* ct, const uint8_t* cb, int n)
 {
-    T absdiff0 = abs_diff_i16<T, ARCH>(load_half<T>(ct + N - 1), load_half<T>(cb - N - 1));
-    T absdiff1 = abs_diff_i16<T, ARCH>(load_half<T>(ct + N),     load_half<T>(cb - N));
-    T absdiff2 = abs_diff_i16<T, ARCH>(load_half<T>(ct + N + 1), load_half<T>(cb - N + 1));
+    T absdiff0 = abs_diff_i16<T, ARCH>(load_half<T>(ct + n - 1), load_half<T>(cb - n - 1));
+    T absdiff1 = abs_diff_i16<T, ARCH>(load_half<T>(ct + n),     load_half<T>(cb - n));
+    T absdiff2 = abs_diff_i16<T, ARCH>(load_half<T>(ct + n + 1), load_half<T>(cb - n + 1));
     return add_i16(add_i16(absdiff0, absdiff1), absdiff2);
 }
 
@@ -171,29 +171,31 @@ SFINLINE T calc_score(const uint8_t* ct, const uint8_t* cb)
 template <typename T, arch_t ARCH>
 SFINLINE T calc_spatial_pred(const uint8_t* ct, const uint8_t* cb)
 {
-    T score = calc_score<T, ARCH, 0>(ct, cb);
+    T score = calc_score<T, ARCH>(ct, cb, 0);
     score = add_i16(score, cmpeq_i16(score, score)); // -1
     T pred = avg_i16(load_half<T>(ct), load_half<T>(cb));
 
-    T sl_score1 = calc_score<T, ARCH, -1>(ct, cb);
-    T sl_score2 = calc_score<T, ARCH, -2>(ct, cb);
+    T sl_score1 = calc_score<T, ARCH>(ct, cb, -1);
+    T sl_score2 = calc_score<T, ARCH>(ct, cb, -2);
     T sl_pred1 = avg_i16(load_half<T>(ct - 1), load_half<T>(cb + 1));
     T sl_pred2 = avg_i16(load_half<T>(ct - 2), load_half<T>(cb + 2));
     T mask = cmpgt_i16(sl_score1, sl_score2);
-    T sl_pred = blendv(sl_pred1, sl_pred2, mask);
+    sl_pred2 = blendv(sl_pred1, sl_pred2, mask);
+    sl_score2 = min_i16(sl_score1, sl_score2);
     mask = cmpgt_i16(score, sl_score1);
-    pred = blendv(pred, sl_pred, mask);
-    score = min_i16(score, sl_score1);
+    pred = blendv(pred, sl_pred2, mask);
+    score = blendv(score, sl_score2, mask);
 
-
-    sl_score1 = calc_score<T, ARCH, 1>(ct, cb);
-    sl_score2 = calc_score<T, ARCH, 2>(ct, cb);
+    sl_score1 = calc_score<T, ARCH>(ct, cb, 1);
+    sl_score2 = calc_score<T, ARCH>(ct, cb, 2);
     sl_pred1 = avg_i16(load_half<T>(ct + 1), load_half<T>(cb - 1));
     sl_pred2 = avg_i16(load_half<T>(ct + 2), load_half<T>(cb - 2));
     mask = cmpgt_i16(sl_score1, sl_score2);
-    sl_pred = blendv(sl_pred1, sl_pred2, mask);
+    sl_pred2 = blendv(sl_pred1, sl_pred2, mask);
     mask = cmpgt_i16(score, sl_score1);
-    return blendv(pred, sl_pred, mask);
+    pred = blendv(pred, sl_pred2, mask);
+
+    return pred;
 }
 
 

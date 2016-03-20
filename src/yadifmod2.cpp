@@ -50,6 +50,8 @@ YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, arch_t arch) :
         field = order;
     }
 
+    prev_first = nfSrc == 1 ? 0 : edeint ? 0 : 1; // forth original yadif and yadifmod
+
     mainProc = get_main_proc(mode < 2, edeint != nullptr, arch);
 }
 
@@ -80,7 +82,7 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
     }
 
     auto curr = child->GetFrame(n, env);
-    auto prev = child->GetFrame(std::max(n - 1, 0), env);
+    auto prev = child->GetFrame(n == 0 ? prev_first : n - 1, env);
     auto next = child->GetFrame(std::min(n + 1, nfSrc - 1), env);
     auto dst = env->NewVideoFrame(vi);
 
