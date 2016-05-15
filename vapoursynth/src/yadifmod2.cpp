@@ -137,7 +137,7 @@ get_main_proc(int bps, bool spcheck, bool edeint, arch_t arch)
 
 YadifMod2::YadifMod2(VSNodeRef* c, VSNodeRef* e, int o, int f, int m,
                      arch_t arch, VSCore* core, const VSAPI* api) :
-    clip(c), edeint(e), order(o), field(f), mode(m)
+    clip(c), eclip(e), order(o), field(f), mode(m)
 {
     vi = *api->getVideoInfo(clip);
 
@@ -152,7 +152,7 @@ YadifMod2::YadifMod2(VSNodeRef* c, VSNodeRef* e, int o, int f, int m,
         field = order;
     }
 
-    prevFirst = nfSrc == 0 ? 0 : edeint ? 0 : 1;
+    prevFirst = nfSrc == 0 ? 0 : eclip ? 0 : 1;
 
     switch (vi.format->bytesPerSample) {
     case 1:
@@ -176,7 +176,7 @@ YadifMod2::YadifMod2(VSNodeRef* c, VSNodeRef* e, int o, int f, int m,
         arch = arch < USE_AVX ? USE_SSE2 : USE_AVX;
     }
 
-    mainProc = get_main_proc(bps, mode < 2, edeint != nullptr, arch);
+    mainProc = get_main_proc(bps, mode < 2, eclip != nullptr, arch);
 }
 
 
@@ -190,8 +190,8 @@ void YadifMod2::requestFrames(int n, const VSAPI* api, VSFrameContext* ctx)
     api->requestFrameFilter(n, clip, ctx);
     api->requestFrameFilter(std::min(n + 1, nfSrc), clip, ctx);
 
-    if (edeint) {
-        api->requestFrameFilter(n, edeint, ctx);
+    if (eclip) {
+        api->requestFrameFilter(n, eclip, ctx);
     }
 }
 
@@ -205,7 +205,7 @@ getFrame(int n, VSCore* core, const VSAPI* api, VSFrameContext* ctx)
         n /= 2;
     }
 
-    auto edeint = this->edeint ? api->getFrameFilter(n, this->edeint, ctx)
+    auto edeint = eclip ? api->getFrameFilter(n, eclip, ctx)
                 : nullptr;
     auto curr = api->getFrameFilter(n, clip, ctx);
     auto prev = api->getFrameFilter(n == 0 ? prevFirst : n - 1, clip, ctx);
@@ -243,7 +243,7 @@ getFrame(int n, VSCore* core, const VSAPI* api, VSFrameContext* ctx)
 
         const uint8_t* edeintp = nullptr;
         int estride = 0;
-        if (this->edeint) {
+        if (eclip) {
             edeintp = api->getReadPtr(edeint, p);
             estride = api->getStride(edeint, p);
         }

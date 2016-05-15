@@ -301,7 +301,7 @@ static F_INLINE __m128i div2(const __m128i& x)
     return _mm_srli_epi16(x, 1);
 }
 template <>
-static F_INLINE __m128i div2<uint16_t>(const __m128i& x)
+F_INLINE __m128i div2<uint16_t>(const __m128i& x)
 {
     return _mm_srli_epi32(x, 1);
 }

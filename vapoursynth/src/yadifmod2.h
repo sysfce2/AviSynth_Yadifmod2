@@ -13,7 +13,7 @@ typedef void(*proc_filter_t)(
 
 class YadifMod2 {
     VSNodeRef* clip;
-    VSNodeRef* edeint;
+    VSNodeRef* eclip;
     VSVideoInfo vi;
     int nfSrc;
     int order;
@@ -25,15 +25,15 @@ class YadifMod2 {
     proc_filter_t mainProc;
 
 public:
-    YadifMod2(VSNodeRef* clip, VSNodeRef* edeint, int order, int field,
+    YadifMod2(VSNodeRef* clip, VSNodeRef* eclip, int order, int field,
               int mode, arch_t arch, VSCore* core, const VSAPI* api);
     ~YadifMod2(){}
     const VSFrameRef* getFrame(int n, VSCore* core, const VSAPI* api,
                                VSFrameContext* ctx);
     void requestFrames(int n, const VSAPI* api, VSFrameContext* ctx);
     void freeClips(const VSAPI* api) {
-        if (edeint) {
-            api->freeNode(edeint);
+        if (eclip) {
+            api->freeNode(eclip);
         }
         api->freeNode(clip);
     };
