@@ -44,13 +44,19 @@ create_filter(const VSMap* in, VSMap* out, void*, VSCore* core, const VSAPI* api
     VSNodeRef* edeint = get_arg<VSNodeRef*>("edeint", 0, in, api);
 
     try {
-        const VSVideoInfo vi = *api->getVideoInfo(clip);
+        int mode = get_arg("mode", 0, 0, in, api);
+        validate(mode < 0 || mode > 3, "mode must be set to 0, 1, 2 or 3.");
+
+        const VSVideoInfo& vi = *api->getVideoInfo(clip);
         validate(!is_constant_format(vi), "clip is not constant format");
         validate(is_half_precision(vi), "half precision is not supported.");
 
         if (edeint) {
-            validate(!is_same_format(vi, *api->getVideoInfo(edeint)),
-                     "clip and edeint are not mach.");
+            const VSVideoInfo& vied = *api->getVideoInfo(edeint);
+            validate(!is_same_format(vi, vied),
+                     "edeint clip's format does not mach.");
+            validate(vied.numFrames != vi.numFrames * ((mode & 1) ? 2 : 1),
+                     "edeint clip's number of frames doesn't match.");
         }
 
         int order = get_arg("order", 1, 0, in, api);
@@ -59,9 +65,6 @@ create_filter(const VSMap* in, VSMap* out, void*, VSCore* core, const VSAPI* api
 
         int field = get_arg("field", -1, 0, in, api);
         validate(field < -1 || field > 1, "field must be set to -1, 0 or 1.");
-
-        int mode = get_arg("mode", 0, 0, in, api);
-        validate(mode < 0 || mode > 3, "mode must be set to 0, 1, 2 or 3.");
 
         arch_t arch = get_arch(get_arg("opt", -1, 0, in, api));
 

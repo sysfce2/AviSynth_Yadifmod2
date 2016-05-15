@@ -3,8 +3,6 @@ myvshelper.h: Copyright (C) 2016  Oka Motofumi
 
 Author: Oka Motofumi (chikuzen.mo at gmail dot com)
 
-This file is part of ReduceFlicker.
-
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
 License as published by the Free Software Foundation; either
@@ -53,8 +51,8 @@ static F_INLINE bool is_half_precision(const VSVideoInfo& vi)
 static F_INLINE bool
 is_same_format(const VSVideoInfo& vi0, const VSVideoInfo& vi1)
 {
-    return vi0.format == vi1.format && vi0.width == vi1.width &&
-        vi0.height == vi1.height && vi0.numFrames == vi1.numFrames;
+    return vi0.format == vi1.format && vi0.width == vi1.width
+        && vi0.height == vi1.height;
 }
 
 template <typename T>
@@ -122,11 +120,7 @@ static inline T
 get_arg(const char* name, int index, const VSMap* in, const VSAPI* api)
 {
     int err = 0;
-    T ret = get_prop<T>(api, in, name, index, &err);
-    if (err) {
-        return reinterpret_cast<T>(nullptr);
-    }
-    return ret;
+    return get_prop<T>(api, in, name, index, &err);
 }
 
 template <typename T>
