@@ -3,8 +3,6 @@ arch.h: Copyright (C) 2016  Oka Motofumi
 
 Author: Oka Motofumi (chikuzen.mo at gmail dot com)
 
-This file is part of ReduceFlicker.
-
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
 License as published by the Free Software Foundation; either
@@ -35,7 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 #endif // X86
 
 
-#if defined(__AVX2__)
+#if defined(__AVX__)
     #if defined(__GNUC__)
         #include <x86intrin.h>
     #else
