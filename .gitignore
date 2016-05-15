@@ -3,6 +3,11 @@ avisynth/vs2015/Debug/*
 avisynth/vs2015/Release/*
 avisynth/vs2015/x64/*
 avisynth/vs2015/.vs/*
+vapoursynth/archive/*
+vapoursynth/vs2015/Debug/*
+vapoursynth/vs2015/Release/*
+vapoursynth/vs2015/x64/*
+vapoursynth/vs2015/.vs/*
 *.opendb
 *.db
 *.filters
@@ -13,5 +18,7 @@ avisynth/vs2015/.vs/*
 *.vspx
 *.avs
 *.avsi
+*.vpy
+*.py
 *.dll
 *.exe
