@@ -65,21 +65,6 @@ SFINLINE __m256i load_half<__m256i>(const uint8_t* p)
 }
 
 template <typename T>
-T loadu(const uint8_t* p);
-
-template <>
-__m128i loadu<__m128i>(const uint8_t* p)
-{
-    return _mm_loadu_si128(reinterpret_cast<const __m128i*>(p));
-}
-
-template <>
-__m256i loadu<__m256i>(const uint8_t* p)
-{
-    return _mm256_loadu_si256(reinterpret_cast<const __m256i*>(p));
-}
-
-template <typename T>
 void store_half(uint8_t * p, const T & x) {}
 
 template <>
@@ -236,7 +221,7 @@ SFINLINE T minus_i16(const T& x)
 {
     return sub_i16(zero<T>(), x);
 }
-
+/*
 SFINLINE __m128i abs_diff_u8(const __m128i& x, const __m128i& y)
 {
    return _mm_or_si128(_mm_subs_epu8(x, y), _mm_subs_epu8(y, x));
@@ -269,7 +254,7 @@ SFINLINE __m256i cvt8to16lo(const __m256i& x)
 {
     return _mm256_unpacklo_epi8(_mm256_permute4x64_epi64(x, 216), zero<__m256i>());
 }
-
+*/
 SFINLINE __m128i cmpeq_i16(const __m128i& x, const __m128i& y)
 {
     return _mm_cmpeq_epi16(x, y);
