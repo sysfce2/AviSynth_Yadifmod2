@@ -28,8 +28,6 @@
 
 #include <cstdint>
 #include <algorithm>
-#include <map>
-#include <tuple>
 #include <stdexcept>
 #define WIN32_LEAN_AND_MEAN
 #define VC_EXTRALEAN
@@ -38,8 +36,8 @@
 #include <windows.h>
 #include <avisynth.h>
 
-#include "arch.h"
-#include "proc_filter.h"
+#include "common.h"
+
 
 
 #define YADIF_MOD_2_VERSION "0.0.4"
@@ -47,37 +45,6 @@
 
 typedef IScriptEnvironment ise_t;
 
-
-
-proc_filter_t
-get_main_proc(bool sp_check, bool has_edeint, arch_t arch) noexcept
-{
-    using std::make_tuple;
-
-    std::map<std::tuple<bool, bool, arch_t>, proc_filter_t> func;
-
-    func[make_tuple(true,  true,  NO_SIMD)] = proc_filter_c<true,  true>;
-    func[make_tuple(true,  false, NO_SIMD)] = proc_filter_c<true,  false>;
-    func[make_tuple(false, true,  NO_SIMD)] = proc_filter_c<false, true>;
-    func[make_tuple(false, false, NO_SIMD)] = proc_filter_c<false, false>;
-
-    func[make_tuple(true,  true,  USE_SSE2)] = proc_filter<__m128i, USE_SSE2, true, true>;
-    func[make_tuple(true,  false, USE_SSE2)] = proc_filter<__m128i, USE_SSE2, true, false>;
-    func[make_tuple(false, true,  USE_SSE2)] = proc_filter<__m128i, USE_SSE2, false, true>;
-    func[make_tuple(false, false, USE_SSE2)] = proc_filter<__m128i, USE_SSE2, false, false>;
-
-    func[make_tuple(true,  true,  USE_SSSE3)] = proc_filter<__m128i, USE_SSSE3, true, true>;
-    func[make_tuple(true,  false, USE_SSSE3)] = proc_filter<__m128i, USE_SSSE3, true, false>;
-    func[make_tuple(false, true,  USE_SSSE3)] = proc_filter<__m128i, USE_SSSE3, false, true>;
-    func[make_tuple(false, false, USE_SSSE3)] = proc_filter<__m128i, USE_SSSE3, false, false>;
-#if defined(__AVX2__)
-    func[make_tuple(true,  true,  USE_AVX2)] = proc_filter<__m256i, USE_AVX2, true, true>;
-    func[make_tuple(true,  false, USE_AVX2)] = proc_filter<__m256i, USE_AVX2, true, false>;
-    func[make_tuple(false, true,  USE_AVX2)] = proc_filter<__m256i, USE_AVX2, false, true>;
-    func[make_tuple(false, false, USE_AVX2)] = proc_filter<__m256i, USE_AVX2, false, false>;
-#endif
-    return func[make_tuple(sp_check, has_edeint, arch)];
-}
 
 
 
@@ -94,10 +61,13 @@ class YadifMod2 : public GenericVideoFilter {
 
 public:
     YadifMod2(PClip child, PClip edeint, int order, int field, int mode,
-        arch_t arch);
+              arch_t arch);
     ~YadifMod2() {}
     PVideoFrame __stdcall GetFrame(int n, ise_t* env);
 };
+
+
+extern proc_filter_t get_main_proc(bool sp_check, bool has_edeint, arch_t arch);
 
 
 YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, arch_t arch) :
@@ -234,8 +204,30 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
 }
 
 
+extern int has_sse2(void);
+extern int has_ssse3(void);
+extern int has_avx2(void);
 
-static void validate(bool cond, const char* msg)
+
+static arch_t get_arch(int opt) noexcept
+{
+    if (opt == 0 || !has_sse2()) {
+        return NO_SIMD;
+    }
+    if (opt == 1 || !has_ssse3()) {
+        return USE_SSE2;
+    }
+#if !defined(__AVX2__)
+    return USE_SSSE3;
+#else
+    if (opt == 2 || !has_avx2()) {
+        return USE_SSSE3;
+    }
+    return USE_AVX2;
+#endif
+}
+
+static inline void validate(bool cond, const char* msg)
 {
     if (cond) {
         throw std::runtime_error(msg);

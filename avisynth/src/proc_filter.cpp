@@ -26,12 +26,13 @@
 */
 
 
-#ifndef PROC_FILTER_H
-#define PROC_FILTER_H
 
 #include <cstdint>
 #include <algorithm>
-#include "arch.h"
+#include <map>
+#include <tuple>
+
+#include "common.h"
 #include "simd.h"
 
 
@@ -295,12 +296,38 @@ proc_filter(const uint8_t* currp, const uint8_t* prevp, const uint8_t* nextp,
 }
 
 
-typedef void(__stdcall *proc_filter_t)(
-    const uint8_t* currp, const uint8_t* prevp, const uint8_t* nextp,
-    const uint8_t* fm_prev, const uint8_t* fm_next, const uint8_t* edeintp,
-    uint8_t* dstp, const int width, const int cpitch, const int ppitch,
-    const int npitch, const int fm_ppitch, const int fm_npitch,
-    const int epitch2, const int dpitch2, const int count);
 
 
+/********************* function selector ***************************/
+
+proc_filter_t
+get_main_proc(bool sp_check, bool has_edeint, arch_t arch) noexcept
+{
+    using std::make_tuple;
+
+    std::map<std::tuple<bool, bool, arch_t>, proc_filter_t> func;
+
+    func[make_tuple(true,  true,  NO_SIMD)] = proc_filter_c<true,  true>;
+    func[make_tuple(true,  false, NO_SIMD)] = proc_filter_c<true,  false>;
+    func[make_tuple(false, true,  NO_SIMD)] = proc_filter_c<false, true>;
+    func[make_tuple(false, false, NO_SIMD)] = proc_filter_c<false, false>;
+
+    func[make_tuple(true,  true,  USE_SSE2)] = proc_filter<__m128i, USE_SSE2, true, true>;
+    func[make_tuple(true,  false, USE_SSE2)] = proc_filter<__m128i, USE_SSE2, true, false>;
+    func[make_tuple(false, true,  USE_SSE2)] = proc_filter<__m128i, USE_SSE2, false, true>;
+    func[make_tuple(false, false, USE_SSE2)] = proc_filter<__m128i, USE_SSE2, false, false>;
+
+    func[make_tuple(true,  true,  USE_SSSE3)] = proc_filter<__m128i, USE_SSSE3, true, true>;
+    func[make_tuple(true,  false, USE_SSSE3)] = proc_filter<__m128i, USE_SSSE3, true, false>;
+    func[make_tuple(false, true,  USE_SSSE3)] = proc_filter<__m128i, USE_SSSE3, false, true>;
+    func[make_tuple(false, false, USE_SSSE3)] = proc_filter<__m128i, USE_SSSE3, false, false>;
+#if defined(__AVX2__)
+    func[make_tuple(true,  true,  USE_AVX2)] = proc_filter<__m256i, USE_AVX2, true, true>;
+    func[make_tuple(true,  false, USE_AVX2)] = proc_filter<__m256i, USE_AVX2, true, false>;
+    func[make_tuple(false, true,  USE_AVX2)] = proc_filter<__m256i, USE_AVX2, false, true>;
+    func[make_tuple(false, false, USE_AVX2)] = proc_filter<__m256i, USE_AVX2, false, false>;
 #endif
+    return func[make_tuple(sp_check, has_edeint, arch)];
+}
+
+

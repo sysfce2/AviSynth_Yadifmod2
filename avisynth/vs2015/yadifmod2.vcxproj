@@ -132,12 +132,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\cpu_check.cpp" />
+    <ClCompile Include="..\src\proc_filter.cpp" />
     <ClCompile Include="..\src\yadifmod2.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\proc_filter.h" />
     <ClInclude Include="..\src\simd.h" />
-    <ClInclude Include="..\src\arch.h" />
+    <ClInclude Include="..\src\common.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

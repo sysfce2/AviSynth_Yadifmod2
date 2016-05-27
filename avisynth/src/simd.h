@@ -28,7 +28,7 @@
 #else
     #include <tmmintrin.h>
 #endif
-#include "arch.h"
+#include "common.h"
 
 
 #define SFINLINE static __forceinline

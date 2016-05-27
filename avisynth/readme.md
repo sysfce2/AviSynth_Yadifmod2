@@ -5,7 +5,7 @@
 
 ### Info:
 
-	version 0.0.3
+	version 0.0.4
 
 ### Requirement:
 	- Avisynth2.6.0final/Avisynth+r1576 or greater.
@@ -32,9 +32,9 @@
 
 		Controls which field to keep when using same rate output.
 
-		-1(default) = set eqal to order
-		 0 = keep bottom field
-		 1 = keep top field
+		-1 = set eqal to order.(default)
+		 0 = keep bottom field.
+		 1 = keep top field.
 
 		This parameter doesn't do anything when using double rate output.
 
@@ -42,10 +42,10 @@
 
 		Controls double rate vs same rate output, and whether or not the spatial interlacing check is performed.
 
-		0(default) = same rate, do spatial check
-		1 = double rate, do spatial check
-		2 = same rate, no spatial check
-		3 = double rate, no spatial check
+		0 = same rate, do spatial check.(default)
+		1 = double rate, do spatial check.
+		2 = same rate, no spatial check.
+		3 = double rate, no spatial check.
 
 ####	edeint -
 
@@ -61,15 +61,14 @@
 
 		Controls which cpu optimizations are used.
 
-		-1(default) = autodetect
-		 0 = force C routine
-		 1 = force SSE2 routine
-		 2 = force SSE2 + SSSE3 routine
-		 3 = force AVX2 routine
+		 0 = Use C routine.
+		 1 = Use SSE2 routine.
+		 2 = Use SSE2 + SSSE3 routine if possible. When SSSE3 can't be used, fallback to 1.
+		 3 = Use AVX2 routine if possible. When AVX2 can't be used, fallback to 2.(default)
 
 ### Note:
 
-		- yadifmod2_avx.dll is for AVX supported CPUs.(it is compiled with /arch:AVX).
+		- yadifmod2_avx2.dll is for AVX2 supported CPUs.(it is compiled with /arch:AVX2).
 
 
 ### Changelog:
@@ -89,6 +88,11 @@
 		Add missing prediction score update.
 		Also, fix previous frame position when n == 0.
 		now, the outputs of yadifmod2 w/o edeint clip are almost same as yadif1.7 except edge part of image.
+
+	0.0.4(20160527)
+		Set filter mode as MT_NICE_FILTER automatically on Avisynth+MT.
+		Disable AVX2 code if /arch:AVX2 is not set.
+
 
 ###Source code:
 
