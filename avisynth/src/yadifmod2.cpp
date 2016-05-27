@@ -28,7 +28,76 @@
 
 #include <cstdint>
 #include <algorithm>
-#include "yadifmod2.h"
+#include <map>
+#include <tuple>
+#include <stdexcept>
+#define WIN32_LEAN_AND_MEAN
+#define VC_EXTRALEAN
+#define NOMINMAX
+#define NOGDI
+#include <windows.h>
+#include <avisynth.h>
+
+#include "arch.h"
+#include "proc_filter.h"
+
+
+#define YADIF_MOD_2_VERSION "0.0.4"
+
+
+typedef IScriptEnvironment ise_t;
+
+
+
+proc_filter_t
+get_main_proc(bool sp_check, bool has_edeint, arch_t arch) noexcept
+{
+    using std::make_tuple;
+
+    std::map<std::tuple<bool, bool, arch_t>, proc_filter_t> func;
+
+    func[make_tuple(true,  true,  NO_SIMD)] = proc_filter_c<true,  true>;
+    func[make_tuple(true,  false, NO_SIMD)] = proc_filter_c<true,  false>;
+    func[make_tuple(false, true,  NO_SIMD)] = proc_filter_c<false, true>;
+    func[make_tuple(false, false, NO_SIMD)] = proc_filter_c<false, false>;
+
+    func[make_tuple(true,  true,  USE_SSE2)] = proc_filter<__m128i, USE_SSE2, true, true>;
+    func[make_tuple(true,  false, USE_SSE2)] = proc_filter<__m128i, USE_SSE2, true, false>;
+    func[make_tuple(false, true,  USE_SSE2)] = proc_filter<__m128i, USE_SSE2, false, true>;
+    func[make_tuple(false, false, USE_SSE2)] = proc_filter<__m128i, USE_SSE2, false, false>;
+
+    func[make_tuple(true,  true,  USE_SSSE3)] = proc_filter<__m128i, USE_SSSE3, true, true>;
+    func[make_tuple(true,  false, USE_SSSE3)] = proc_filter<__m128i, USE_SSSE3, true, false>;
+    func[make_tuple(false, true,  USE_SSSE3)] = proc_filter<__m128i, USE_SSSE3, false, true>;
+    func[make_tuple(false, false, USE_SSSE3)] = proc_filter<__m128i, USE_SSSE3, false, false>;
+#if defined(__AVX2__)
+    func[make_tuple(true,  true,  USE_AVX2)] = proc_filter<__m256i, USE_AVX2, true, true>;
+    func[make_tuple(true,  false, USE_AVX2)] = proc_filter<__m256i, USE_AVX2, true, false>;
+    func[make_tuple(false, true,  USE_AVX2)] = proc_filter<__m256i, USE_AVX2, false, true>;
+    func[make_tuple(false, false, USE_AVX2)] = proc_filter<__m256i, USE_AVX2, false, false>;
+#endif
+    return func[make_tuple(sp_check, has_edeint, arch)];
+}
+
+
+
+class YadifMod2 : public GenericVideoFilter {
+    PClip edeint;
+    int nfSrc;
+    int order;
+    int field;
+    int mode;
+    int numPlanes;
+    int prevFirst;
+
+    proc_filter_t mainProc;
+
+public:
+    YadifMod2(PClip child, PClip edeint, int order, int field, int mode,
+        arch_t arch);
+    ~YadifMod2() {}
+    PVideoFrame __stdcall GetFrame(int n, ise_t* env);
+};
 
 
 YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, arch_t arch) :
@@ -50,14 +119,19 @@ YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, arch_t arch) :
         field = order;
     }
 
-    prev_first = nfSrc == 1 ? 0 : edeint ? 0 : 1; // forth original yadif and yadifmod
+    prevFirst = nfSrc == 1 ? 0 : edeint ? 0 : 1; // forth original yadif and yadifmod
 
     mainProc = get_main_proc(mode < 2, edeint != nullptr, arch);
+
+    child->SetCacheHints(CACHE_WINDOW, 3);
+    if (edeint) {
+        edeint->SetCacheHints(CACHE_NOTHING, 0);
+    }
 }
 
 
 static inline void
-interp(uint8_t* dstp, const uint8_t* srcp0, int pitch, int width)
+interp(uint8_t* dstp, const uint8_t* srcp0, int pitch, int width) noexcept
 {
     const uint8_t* srcp1 = srcp0 + pitch * 2;
     for (int x = 0; x < width; ++x) {
@@ -81,9 +155,10 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
         n /= 2;
     }
 
-    auto curr = child->GetFrame(n, env);
-    auto prev = child->GetFrame(n == 0 ? prev_first : n - 1, env);
     auto next = child->GetFrame(std::min(n + 1, nfSrc - 1), env);
+    auto curr = child->GetFrame(n, env);
+    auto prev = child->GetFrame(n == 0 ? prevFirst : n - 1, env);
+
     auto dst = env->NewVideoFrame(vi);
 
     for (int p = 0; p < numPlanes; ++p) {
@@ -159,64 +234,52 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
 }
 
 
-static arch_t get_arch(int opt)
+
+static void validate(bool cond, const char* msg)
 {
-    if (opt == 0 || !has_sse2()) {
-        return NO_SIMD;
+    if (cond) {
+        throw std::runtime_error(msg);
     }
-    if (opt == 1 || !has_ssse3()) {
-        return USE_SSE2;
-    }
-    if (opt == 2 || !has_avx2()) {
-        return USE_SSSE3;
-    }
-    return USE_AVX2;
 }
 
-static void validate(bool cond, const char* msg, ise_t* env)
-{
-    if (!cond) {
-        env->ThrowError("yadifmod2: %s", msg);
-    }
-}
 
 static AVSValue __cdecl
 create_yadifmod2(AVSValue args, void* user_data, ise_t* env)
 {
-    PClip child = args[0].AsClip();
-    const VideoInfo& vi = child->GetVideoInfo();
-    validate(vi.IsPlanar(), "input clip must be a planar format.", env);
+    try {
+        PClip child = args[0].AsClip();
+        const VideoInfo& vi = child->GetVideoInfo();
+        validate(!vi.IsPlanar(), "input clip must be a planar format.");
 
-    int order = args[1].AsInt(-1);
-    validate(order >= -1 && order <= 1,
-             "order must be set to -1, 0 or 1.", env);
+        int order = args[1].AsInt(-1);
+        validate(order < -1 || order > 1, "order must be set to -1, 0 or 1.");
 
-    int field = args[2].AsInt(-1);
-    validate(field >= -1 && field <= 1,
-             "field must be set to -1, 0 or 1.", env);
+        int field = args[2].AsInt(-1);
+        validate(field < -1 || field > 1, "field must be set to -1, 0 or 1.");
 
-    int mode = args[3].AsInt(0);
-    validate(mode >= 0 && mode <= 3,
-             "mode must be set to 0, 1, 2 or 3", env);
+        int mode = args[3].AsInt(0);
+        validate(mode < 0 || mode > 3, "mode must be set to 0, 1, 2 or 3");
 
-    PClip edeint = nullptr;
-    if (args[4].Defined()) {
-        edeint = args[4].AsClip();
-        const VideoInfo& vi_ed = edeint->GetVideoInfo();
-        validate(vi.IsSameColorspace(vi_ed),
-                 "edeint clip's colorspace doesn't match.", env);
-        validate(vi.width == vi_ed.width && vi.height == vi_ed.height,
-                "input and edeint must be the same resolution.", env);
-        validate(vi.num_frames * ((mode & 1) ? 2 : 1) == vi_ed.num_frames,
-                 "edeint clip's number of frames doesn't match.", env);
+        PClip edeint = nullptr;
+        if (args[4].Defined()) {
+            edeint = args[4].AsClip();
+            const VideoInfo& vi_ed = edeint->GetVideoInfo();
+            validate(!vi.IsSameColorspace(vi_ed),
+                     "edeint clip's colorspace doesn't match.");
+            validate(vi.width != vi_ed.width || vi.height != vi_ed.height,
+                    "input and edeint must be the same resolution.");
+            validate(vi.num_frames * ((mode & 1) ? 2 : 1) != vi_ed.num_frames,
+                     "edeint clip's number of frames doesn't match.");
+        }
+
+        arch_t arch = get_arch(args[5].AsInt(-1));
+
+        return new YadifMod2(child, edeint, order, field, mode, arch);
+
+    } catch (std::runtime_error& e) {
+        env->ThrowError("yadifmod2: %s", e.what());
     }
-
-    int opt = args[5].AsInt(-1);
-    validate(opt >= -1 && opt <= 3,
-             "opt must be set to -1(auto), 0(C), 1(SSE2), 2(SSSE3) or 3(AVX2).", env);
-    arch_t arch = get_arch(opt);
-
-    return new YadifMod2(child, edeint, order, field, mode, arch);
+    return 0;
 }
 
 
@@ -227,13 +290,17 @@ extern "C" __declspec(dllexport) const char* __stdcall
 AvisynthPluginInit3(ise_t* env, const AVS_Linkage* vectors)
 {
     AVS_linkage = vectors;
-    env->AddFunction("yadifmod2",
-                     "c"
-                     "[order]i"
-                     "[field]i"
-                     "[mode]i"
-                     "[edeint]c"
-                     "[opt]i",
-                     create_yadifmod2, nullptr);
+
+    const char* args =
+        "c"
+        "[order]i"
+        "[field]i"
+        "[mode]i"
+        "[edeint]c"
+        "[opt]i";
+
+    env->AddFunction("yadifmod2", args, create_yadifmod2, nullptr);
+
+
     return "yadifmod2 = yadif + yadifmod ... ver. " YADIF_MOD_2_VERSION;
 }

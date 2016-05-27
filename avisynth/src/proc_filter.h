@@ -25,39 +25,44 @@
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
+
+#ifndef PROC_FILTER_H
+#define PROC_FILTER_H
+
 #include <cstdint>
 #include <algorithm>
-#include <tuple>
-#include <map>
-#include "yadifmod2.h"
+#include "arch.h"
 #include "simd.h"
 
 
 /* --- NO SIMD version ----------------------------------------------------- */
-static inline int average(const int& x, const int& y)
+static inline int average(const int& x, const int& y) noexcept
 {
     return (x + y) / 2;
 }
 
-static inline int abs_diff(const int& x, const int& y)
+static inline int abs_diff(const int& x, const int& y) noexcept
 {
     return x > y ? x - y : y - x;
 }
 
-static inline uint8_t clamp(const int& val, const int& min, const int& max)
+static inline uint8_t
+clamp(const int& val, const int& min, const int& max) noexcept
 {
     return static_cast<uint8_t>(std::max(std::min(val, max), min));
 }
 
 
-static inline int calc_score(const uint8_t* ct, const uint8_t* cb, int n)
+static inline int
+calc_score(const uint8_t* ct, const uint8_t* cb, int n) noexcept
 {
     return abs_diff(ct[-1 + n], cb[-1 - n]) + abs_diff(ct[n], cb[-n]) +
         abs_diff(ct[1 + n], cb[1 - n]);
 }
 
 
-static inline int calc_spatial_pred(const uint8_t* ct, const uint8_t* cb)
+static inline int
+calc_spatial_pred(const uint8_t* ct, const uint8_t* cb) noexcept
 {
     int pred = average(ct[0], cb[0]);
     int score = calc_score(ct, cb, 0) - 1;
@@ -96,7 +101,7 @@ proc_filter_c(const uint8_t* currp, const uint8_t* prevp, const uint8_t* nextp,
               const uint8_t* edeintp, uint8_t* dstp, const int width,
               const int cpitch, const int ppitch, const int npitch,
               const int fmppitch, const int fmnpitch, const int epitch2,
-              const int dpitch2, const int count)
+              const int dpitch2, const int count) noexcept
 {
     const uint8_t* ct = currp - cpitch;
     const uint8_t* cb = currp + cpitch;
@@ -159,17 +164,21 @@ proc_filter_c(const uint8_t* currp, const uint8_t* prevp, const uint8_t* nextp,
 /* --- SIMD version -------------------------------------------------------- */
 
 template <typename T, arch_t ARCH>
-SFINLINE T calc_score(const uint8_t* ct, const uint8_t* cb, int n)
+SFINLINE T calc_score(const uint8_t* ct, const uint8_t* cb, int n) noexcept
 {
-    T absdiff0 = abs_diff_i16<T, ARCH>(load_half<T>(ct + n - 1), load_half<T>(cb - n - 1));
-    T absdiff1 = abs_diff_i16<T, ARCH>(load_half<T>(ct + n),     load_half<T>(cb - n));
-    T absdiff2 = abs_diff_i16<T, ARCH>(load_half<T>(ct + n + 1), load_half<T>(cb - n + 1));
+    T absdiff0 = abs_diff_i16<T, ARCH>(
+        load_half<T>(ct + n - 1), load_half<T>(cb - n - 1));
+    T absdiff1 = abs_diff_i16<T, ARCH>(
+        load_half<T>(ct + n),     load_half<T>(cb - n));
+    T absdiff2 = abs_diff_i16<T, ARCH>(
+        load_half<T>(ct + n + 1), load_half<T>(cb - n + 1));
+
     return add_i16(add_i16(absdiff0, absdiff1), absdiff2);
 }
 
 
 template <typename T, arch_t ARCH>
-SFINLINE T calc_spatial_pred(const uint8_t* ct, const uint8_t* cb)
+SFINLINE T calc_spatial_pred(const uint8_t* ct, const uint8_t* cb) noexcept
 {
     T score = calc_score<T, ARCH>(ct, cb, 0);
     score = add_i16(score, cmpeq_i16(score, score)); // -1
@@ -206,7 +215,7 @@ proc_filter(const uint8_t* currp, const uint8_t* prevp, const uint8_t* nextp,
             const uint8_t* edeintp, uint8_t* dstp, const int width,
             const int cpitch, const int ppitch, const int npitch,
             const int fmppitch, const int fmnpitch, const int epitch2,
-            const int dpitch2, const int count)
+            const int dpitch2, const int count) noexcept
 {
     const uint8_t* ct = currp - cpitch;
     const uint8_t* cb = currp + cpitch;
@@ -285,33 +294,13 @@ proc_filter(const uint8_t* currp, const uint8_t* prevp, const uint8_t* nextp,
     }
 }
 
-/* --- function selector ---------------------------------------------------- */
 
-proc_filter_t get_main_proc(bool sp_check, bool has_edeint, arch_t arch)
-{
-    using std::make_tuple;
+typedef void(__stdcall *proc_filter_t)(
+    const uint8_t* currp, const uint8_t* prevp, const uint8_t* nextp,
+    const uint8_t* fm_prev, const uint8_t* fm_next, const uint8_t* edeintp,
+    uint8_t* dstp, const int width, const int cpitch, const int ppitch,
+    const int npitch, const int fm_ppitch, const int fm_npitch,
+    const int epitch2, const int dpitch2, const int count);
 
-    std::map<std::tuple<bool, bool, arch_t>, proc_filter_t> func;
 
-    func[make_tuple(true,  true,  NO_SIMD)] = proc_filter_c<true,  true>;
-    func[make_tuple(true,  false, NO_SIMD)] = proc_filter_c<true,  false>;
-    func[make_tuple(false, true,  NO_SIMD)] = proc_filter_c<false, true>;
-    func[make_tuple(false, false, NO_SIMD)] = proc_filter_c<false, false>;
-
-    func[make_tuple(true,  true,  USE_SSE2)] = proc_filter<__m128i, USE_SSE2, true, true>;
-    func[make_tuple(true,  false, USE_SSE2)] = proc_filter<__m128i, USE_SSE2, true, false>;
-    func[make_tuple(false, true,  USE_SSE2)] = proc_filter<__m128i, USE_SSE2, false, true>;
-    func[make_tuple(false, false, USE_SSE2)] = proc_filter<__m128i, USE_SSE2, false, false>;
-
-    func[make_tuple(true,  true,  USE_SSSE3)] = proc_filter<__m128i, USE_SSSE3, true, true>;
-    func[make_tuple(true,  false, USE_SSSE3)] = proc_filter<__m128i, USE_SSSE3, true, false>;
-    func[make_tuple(false, true,  USE_SSSE3)] = proc_filter<__m128i, USE_SSSE3, false, true>;
-    func[make_tuple(false, false, USE_SSSE3)] = proc_filter<__m128i, USE_SSSE3, false, false>;
-
-    func[make_tuple(true,  true,  USE_AVX2)] = proc_filter<__m256i, USE_AVX2, true, true>;
-    func[make_tuple(true,  false, USE_AVX2)] = proc_filter<__m256i, USE_AVX2, true, false>;
-    func[make_tuple(false, true,  USE_AVX2)] = proc_filter<__m256i, USE_AVX2, false, true>;
-    func[make_tuple(false, false, USE_AVX2)] = proc_filter<__m256i, USE_AVX2, false, false>;
-
-    return func[make_tuple(sp_check, has_edeint, arch)];
-}
+#endif
