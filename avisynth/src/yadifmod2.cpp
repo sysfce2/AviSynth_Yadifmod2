@@ -293,6 +293,10 @@ AvisynthPluginInit3(ise_t* env, const AVS_Linkage* vectors)
 
     env->AddFunction("yadifmod2", args, create_yadifmod2, nullptr);
 
+    if (env->FunctionExists("SetFilterMTMode")) {
+        static_cast<IScriptEnvironment2*>(
+            env)->SetFilterMTMode("yadifmod2", MT_NICE_FILTER, true);
+    }
 
     return "yadifmod2 = yadif + yadifmod ... ver. " YADIF_MOD_2_VERSION;
 }
