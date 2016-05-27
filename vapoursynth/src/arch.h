@@ -42,7 +42,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 #elif defined(__SSE4_1__)
     #include <smmintrin.h>
 #elif defined(__SSSE3__)
-    #include <pmmintrin.h>
+    #include <tmmintrin.h>
 #elif defined(__SSE2__)
     #include <emmintrin.h>
 #endif
