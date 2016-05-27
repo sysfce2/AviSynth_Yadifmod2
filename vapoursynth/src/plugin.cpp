@@ -114,6 +114,7 @@ VapourSynthPluginInit(VSConfigPlugin conf, VSRegisterFunction reg, VSPlugin* p)
          VAPOURSYNTH_API_VERSION, 1, p);
     reg("yadifmod2",
         "clip:clip;order:int:opt;field:int:opt;mode:int:opt;edeint:clip:opt;"
-        "opt:int:opt",
+        "opt:int:opt;",
         create_filter, nullptr, p);
 }
+

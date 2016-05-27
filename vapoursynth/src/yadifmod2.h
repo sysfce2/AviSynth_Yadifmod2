@@ -11,6 +11,10 @@ typedef void(*proc_filter_t)(
     uint8_t* dstp, size_t width, int cstride, int pstride, int nstride,
     int fm_pstride, int fm_nstride, int estride2, int dstride2, const int count);
 
+typedef void(*interpolate_t)(
+    uint8_t* dstp, const uint8_t* srcp, int stride, size_t width);
+
+
 class YadifMod2 {
     VSNodeRef* clip;
     VSNodeRef* eclip;
@@ -21,7 +25,7 @@ class YadifMod2 {
     int mode;
     int prevFirst;
 
-    void(*interp)(uint8_t* dstp, const uint8_t* srcp0, int stride, size_t width);
+    interpolate_t interp;
     proc_filter_t mainProc;
 
 public:
@@ -39,6 +43,13 @@ public:
     };
     const VSVideoInfo* getVideoInfo() { return &vi; }
 };
+
+
+proc_filter_t
+get_main_proc(int bits_per_sample, bool spcheck, bool edeint, arch_t arch);
+
+
+interpolate_t get_interp(int bytes_per_sample);
 
 
 #endif

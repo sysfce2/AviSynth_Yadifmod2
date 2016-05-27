@@ -31,109 +31,9 @@
 #include <map>
 #include <tuple>
 #include "yadifmod2.h"
-#include "proc_filter.h"
 
 
 
-static proc_filter_t
-get_main_proc(int bps, bool spcheck, bool edeint, arch_t arch)
-{
-    using std::make_tuple;
-
-    std::map<std::tuple<int, int, bool, arch_t>, proc_filter_t> table;
-
-    table[make_tuple( 8, true,  true,  NO_SIMD)] = proc_cpp<uint8_t, int, true,  true>;
-    table[make_tuple( 8, true,  false, NO_SIMD)] = proc_cpp<uint8_t, int, true,  false>;
-    table[make_tuple( 8, false, true,  NO_SIMD)] = proc_cpp<uint8_t, int, false, true>;
-    table[make_tuple( 8, false, false, NO_SIMD)] = proc_cpp<uint8_t, int, false, false>;
-
-    table[make_tuple(16, true,  true,  NO_SIMD)] = proc_cpp<uint16_t, int, true,  true>;
-    table[make_tuple(16, true,  false, NO_SIMD)] = proc_cpp<uint16_t, int, true,  false>;
-    table[make_tuple(16, false, true,  NO_SIMD)] = proc_cpp<uint16_t, int, false, true>;
-    table[make_tuple(16, false, false, NO_SIMD)] = proc_cpp<uint16_t, int, false, false>;
-
-    table[make_tuple(32, true,  true,  NO_SIMD)] = proc_cpp<float, float, true,  true>;
-    table[make_tuple(32, true,  false, NO_SIMD)] = proc_cpp<float, float, true,  false>;
-    table[make_tuple(32, false, true,  NO_SIMD)] = proc_cpp<float, float, false, true>;
-    table[make_tuple(32, false, false, NO_SIMD)] = proc_cpp<float, float, false, false>;
-#if defined(__SSE2__)
-    table[make_tuple(8, true,  true,  USE_SSE2)] = proc_simd<__m128i, uint8_t, 8, USE_SSE2, true,  true>;
-    table[make_tuple(8, true,  false, USE_SSE2)] = proc_simd<__m128i, uint8_t, 8, USE_SSE2, true,  false>;
-    table[make_tuple(8, false, true,  USE_SSE2)] = proc_simd<__m128i, uint8_t, 8, USE_SSE2, false, true>;
-    table[make_tuple(8, false, false, USE_SSE2)] = proc_simd<__m128i, uint8_t, 8, USE_SSE2, false, true>;
-
-    table[make_tuple(10, true,  true,  USE_SSE2)] = proc_simd<__m128i, int16_t, 16, USE_SSE2, true,  true>;
-    table[make_tuple(10, true,  false, USE_SSE2)] = proc_simd<__m128i, int16_t, 16, USE_SSE2, true,  false>;
-    table[make_tuple(10, false, true,  USE_SSE2)] = proc_simd<__m128i, int16_t, 16, USE_SSE2, false, true>;
-    table[make_tuple(10, false, false, USE_SSE2)] = proc_simd<__m128i, int16_t, 16, USE_SSE2, false, true>;
-
-    table[make_tuple(16, true,  true,  USE_SSE2)] = proc_simd<__m128i, uint16_t, 8, USE_SSE2, true,  true>;
-    table[make_tuple(16, true,  false, USE_SSE2)] = proc_simd<__m128i, uint16_t, 8, USE_SSE2, true,  false>;
-    table[make_tuple(16, false, true,  USE_SSE2)] = proc_simd<__m128i, uint16_t, 8, USE_SSE2, false, true>;
-    table[make_tuple(16, false, false, USE_SSE2)] = proc_simd<__m128i, uint16_t, 8, USE_SSE2, false, true>;
-
-    table[make_tuple(32, true,  true,  USE_SSE2)] = proc_simd<__m128, float, 16, USE_SSE2, true,  true>;
-    table[make_tuple(32, true,  false, USE_SSE2)] = proc_simd<__m128, float, 16, USE_SSE2, true,  false>;
-    table[make_tuple(32, false, true,  USE_SSE2)] = proc_simd<__m128, float, 16, USE_SSE2, false, true>;
-    table[make_tuple(32, false, false, USE_SSE2)] = proc_simd<__m128, float, 16, USE_SSE2, false, true>;
-#if defined(__SSSE3__)
-    table[make_tuple(8, true,  true,  USE_SSSE3)] = proc_simd<__m128i, uint8_t, 8, USE_SSSE3, true,  true>;
-    table[make_tuple(8, true,  false, USE_SSSE3)] = proc_simd<__m128i, uint8_t, 8, USE_SSSE3, true,  false>;
-    table[make_tuple(8, false, true,  USE_SSSE3)] = proc_simd<__m128i, uint8_t, 8, USE_SSSE3, false, true>;
-    table[make_tuple(8, false, false, USE_SSSE3)] = proc_simd<__m128i, uint8_t, 8, USE_SSSE3, false, true>;
-
-    table[make_tuple(10, true,  true,  USE_SSSE3)] = proc_simd<__m128i, int16_t, 16, USE_SSSE3, true,  true>;
-    table[make_tuple(10, true,  false, USE_SSSE3)] = proc_simd<__m128i, int16_t, 16, USE_SSSE3, true,  false>;
-    table[make_tuple(10, false, true,  USE_SSSE3)] = proc_simd<__m128i, int16_t, 16, USE_SSSE3, false, true>;
-    table[make_tuple(10, false, false, USE_SSSE3)] = proc_simd<__m128i, int16_t, 16, USE_SSSE3, false, true>;
-
-    table[make_tuple(16, true,  true,  USE_SSSE3)] = proc_simd<__m128i, uint16_t, 8, USE_SSSE3, true,  true>;
-    table[make_tuple(16, true,  false, USE_SSSE3)] = proc_simd<__m128i, uint16_t, 8, USE_SSSE3, true,  false>;
-    table[make_tuple(16, false, true,  USE_SSSE3)] = proc_simd<__m128i, uint16_t, 8, USE_SSSE3, false, true>;
-    table[make_tuple(16, false, false, USE_SSSE3)] = proc_simd<__m128i, uint16_t, 8, USE_SSSE3, false, true>;
-#if defined(__SSE4_1__)
-    table[make_tuple(8, true,  true,  USE_SSE41)] = proc_simd<__m128i, uint8_t, 8, USE_SSE41, true,  true>;
-    table[make_tuple(8, true,  false, USE_SSE41)] = proc_simd<__m128i, uint8_t, 8, USE_SSE41, true,  false>;
-    table[make_tuple(8, false, true,  USE_SSE41)] = proc_simd<__m128i, uint8_t, 8, USE_SSE41, false, true>;
-    table[make_tuple(8, false, false, USE_SSE41)] = proc_simd<__m128i, uint8_t, 8, USE_SSE41, false, true>;
-
-    table[make_tuple(10, true,  true,  USE_SSE41)] = proc_simd<__m128i, int16_t, 16, USE_SSE41, true,  true>;
-    table[make_tuple(10, true,  false, USE_SSE41)] = proc_simd<__m128i, int16_t, 16, USE_SSE41, true,  false>;
-    table[make_tuple(10, false, true,  USE_SSE41)] = proc_simd<__m128i, int16_t, 16, USE_SSE41, false, true>;
-    table[make_tuple(10, false, false, USE_SSE41)] = proc_simd<__m128i, int16_t, 16, USE_SSE41, false, true>;
-
-    table[make_tuple(16, true,  true,  USE_SSE41)] = proc_simd<__m128i, uint16_t, 8, USE_SSE41, true,  true>;
-    table[make_tuple(16, true,  false, USE_SSE41)] = proc_simd<__m128i, uint16_t, 8, USE_SSE41, true,  false>;
-    table[make_tuple(16, false, true,  USE_SSE41)] = proc_simd<__m128i, uint16_t, 8, USE_SSE41, false, true>;
-    table[make_tuple(16, false, false, USE_SSE41)] = proc_simd<__m128i, uint16_t, 8, USE_SSE41, false, true>;
-#if defined(__AVX__)
-    table[make_tuple(32, true,  true,  USE_AVX)] = proc_simd<__m256, float, 32, USE_AVX, true,  true>;
-    table[make_tuple(32, true,  false, USE_AVX)] = proc_simd<__m256, float, 32, USE_AVX, true,  false>;
-    table[make_tuple(32, false, true,  USE_AVX)] = proc_simd<__m256, float, 32, USE_AVX, false, true>;
-    table[make_tuple(32, false, false, USE_AVX)] = proc_simd<__m256, float, 32, USE_AVX, false, true>;
-#if defined(__AVX2__)
-    table[make_tuple(8, true,  true,  USE_AVX2)] = proc_simd<__m256i, uint8_t, 16, USE_AVX2, true,  true>;
-    table[make_tuple(8, true,  false, USE_AVX2)] = proc_simd<__m256i, uint8_t, 16, USE_AVX2, true,  false>;
-    table[make_tuple(8, false, true,  USE_AVX2)] = proc_simd<__m256i, uint8_t, 16, USE_AVX2, false, true>;
-    table[make_tuple(8, false, false, USE_AVX2)] = proc_simd<__m256i, uint8_t, 16, USE_AVX2, false, true>;
-
-    table[make_tuple(10, true,  true,  USE_AVX2)] = proc_simd<__m256i, int16_t, 32, USE_AVX2, true,  true>;
-    table[make_tuple(10, true,  false, USE_AVX2)] = proc_simd<__m256i, int16_t, 32, USE_AVX2, true,  false>;
-    table[make_tuple(10, false, true,  USE_AVX2)] = proc_simd<__m256i, int16_t, 32, USE_AVX2, false, true>;
-    table[make_tuple(10, false, false, USE_AVX2)] = proc_simd<__m256i, int16_t, 32, USE_AVX2, false, true>;
-
-    table[make_tuple(16, true,  true,  USE_AVX2)] = proc_simd<__m256i, uint16_t, 16, USE_AVX2, true,  true>;
-    table[make_tuple(16, true,  false, USE_AVX2)] = proc_simd<__m256i, uint16_t, 16, USE_AVX2, true,  false>;
-    table[make_tuple(16, false, true,  USE_AVX2)] = proc_simd<__m256i, uint16_t, 16, USE_AVX2, false, true>;
-    table[make_tuple(16, false, false, USE_AVX2)] = proc_simd<__m256i, uint16_t, 16, USE_AVX2, false, true>;
-#endif // __AVX2__
-#endif // __AVX__
-#endif // __SSE4_1__
-#endif // __SSSE3__
-#endif // __SSE2__
-
-    return table[make_tuple(bps, spcheck, edeint, arch)];
-}
 
 YadifMod2::YadifMod2(VSNodeRef* c, VSNodeRef* e, int o, int f, int m,
                      arch_t arch, VSCore* core, const VSAPI* api) :
@@ -154,17 +54,8 @@ YadifMod2::YadifMod2(VSNodeRef* c, VSNodeRef* e, int o, int f, int m,
 
     prevFirst = nfSrc == 0 ? 0 : eclip ? 0 : 1;
 
-    switch (vi.format->bytesPerSample) {
-    case 1:
-        interp = interpolate<uint8_t>;
-        break;
-    case 2:
-        interp = interpolate<uint16_t>;
-        break;
-    default:
-        interp = interpolate<float>;
-    }
-    
+    interp = get_interp(vi.format->bytesPerSample);
+
     int bps = vi.format->bitsPerSample;
     if (bps == 9) {
         bps = 10;

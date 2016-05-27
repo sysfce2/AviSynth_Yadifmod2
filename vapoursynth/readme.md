@@ -24,13 +24,13 @@
 		Set the field order.
 
 		 0 = bff
-		 1(default) = tff
+		 1 = tff(default)
 
 ####	field -
 
 		Controls which field to keep when using same rate output.
 
-		-1(default) = set eqal to order
+		-1 = set eqal to order(default)
 		 0 = keep bottom field
 		 1 = keep top field
 
@@ -40,7 +40,7 @@
 
 		Controls double rate vs same rate output, and whether or not the spatial interlacing check is performed.
 
-		0(default) = same rate, do spatial check
+		0 = same rate, do spatial check(default)
 		1 = double rate, do spatial check
 		2 = same rate, no spatial check
 		3 = double rate, no spatial check
@@ -64,7 +64,7 @@
 		 2 = Use SSSE3 + SSE2 + SSE routine if possible. When SSSE3 can't be used, fallback to 1.
 		 3 = Use SSE4.1 + SSSE3 + SSE2 + SSE routine if possible. When SSE4.1 can't be used, fallback to 2.
 		 4 = Use SSE4.1 + SSSE3 + SSE2 + AVX routine if possible. When AVX can't be used, fallback to 3.
-		 others(default) = Use AVX2 + AVX routine if possible. When AVX2 can't be used, fallback to 4.
+		 others = Use AVX2 + AVX routine if possible. When AVX2 can't be used, fallback to 4.(default)
 
 ### Changelog:
 
