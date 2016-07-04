@@ -5,10 +5,10 @@
 
 ### Info:
 
-	version 0.0.4
+	version 0.0.4-1
 
 ### Requirement:
-	- Avisynth2.6.0final/Avisynth+r1576 or greater.
+	- Avisynth2.6.0final/Avisynth+r2005 or greater.
 	- WindowsVista SP2 or later.
 	- Visual C++ Redistributable Packages for Visual Studio 2015.
 
@@ -93,6 +93,8 @@
 		Set filter mode as MT_NICE_FILTER automatically on Avisynth+MT.
 		Disable AVX2 code if /arch:AVX2 is not set.
 
+	0.0.4-1(20160705)
+		Update avisynth.h to Avisynth+MT r2005
 
 ###Source code:
 
