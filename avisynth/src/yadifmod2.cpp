@@ -40,7 +40,7 @@
 
 
 
-#define YADIF_MOD_2_VERSION "0.0.4"
+#define YADIF_MOD_2_VERSION "0.1.0"
 
 
 typedef IScriptEnvironment ise_t;
@@ -56,24 +56,27 @@ class YadifMod2 : public GenericVideoFilter {
     int mode;
     int numPlanes;
     int prevFirst;
+    int bits;
 
     proc_filter_t mainProc;
+    interpolate_t interp;
 
 public:
     YadifMod2(PClip child, PClip edeint, int order, int field, int mode,
-              arch_t arch);
+              int bits, arch_t arch);
     ~YadifMod2() {}
     PVideoFrame __stdcall GetFrame(int n, ise_t* env);
 };
 
 
-extern proc_filter_t get_main_proc(bool sp_check, bool has_edeint, arch_t arch);
+extern proc_filter_t get_main_proc(int bits, bool sp_check, bool has_edeint, arch_t arch);
+extern interpolate_t get_interp(int bytes_per_sample);
 
 
-YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, arch_t arch) :
-    GenericVideoFilter(c), edeint(e), order(o), field(f), mode(m)
+YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, int b, arch_t arch) :
+    GenericVideoFilter(c), edeint(e), order(o), field(f), mode(m), bits(b)
 {
-    numPlanes = vi.IsY8() ? 1 : 3;
+    numPlanes = vi.pixel_type & VideoInfo::CS_INTERLEAVED ? 1 : 3;
 
     nfSrc = vi.num_frames;
 
@@ -91,21 +94,20 @@ YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, arch_t arch) :
 
     prevFirst = nfSrc == 1 ? 0 : edeint ? 0 : 1; // forth original yadif and yadifmod
 
-    mainProc = get_main_proc(mode < 2, edeint != nullptr, arch);
+    interp = get_interp(vi.ComponentSize());
+
+    if (arch == NO_SIMD && bits == 10) {
+        bits = 16;
+    }
+    if (arch != NO_SIMD && bits == 32) {
+        arch = arch < USE_AVX ? USE_SSE2 : USE_AVX;
+    }
+
+    mainProc = get_main_proc(bits, mode < 2, edeint != nullptr, arch);
 
     child->SetCacheHints(CACHE_WINDOW, 3);
     if (edeint) {
         edeint->SetCacheHints(CACHE_NOTHING, 0);
-    }
-}
-
-
-static inline void
-interp(uint8_t* dstp, const uint8_t* srcp0, int pitch, int width) noexcept
-{
-    const uint8_t* srcp1 = srcp0 + pitch * 2;
-    for (int x = 0; x < width; ++x) {
-        dstp[x] = (srcp0[x] + srcp1[x] + 1) / 2;
     }
 }
 
@@ -206,6 +208,8 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
 
 extern int has_sse2(void);
 extern int has_ssse3(void);
+extern int has_sse41(void);
+extern int has_avx(void);
 extern int has_avx2(void);
 
 
@@ -217,11 +221,17 @@ static arch_t get_arch(int opt) noexcept
     if (opt == 1 || !has_ssse3()) {
         return USE_SSE2;
     }
-#if !defined(__AVX2__)
-    return USE_SSSE3;
-#else
-    if (opt == 2 || !has_avx2()) {
+    if (opt == 2 || !has_sse41()) {
         return USE_SSSE3;
+    }
+#if !defined(__AVX__)
+    return USE_SSE41;
+#else
+    if (opt == 3 || !has_avx()) {
+        return USE_SSE41;
+    }
+    if (opt == 4 || !has_avx2()) {
+        return USE_AVX;
     }
     return USE_AVX2;
 #endif
@@ -264,9 +274,20 @@ create_yadifmod2(AVSValue args, void* user_data, ise_t* env)
                      "edeint clip's number of frames doesn't match.");
         }
 
+        bool is_plus = env->FunctionExists("SetFilterMTMode");
+        int sample_bytes = vi.BytesFromPixels(1);
+
+        int bits = is_plus ? args[6].AsInt(sample_bytes * 8) : 8;
+        if (bits == 9) {
+            bits = 10;
+        }
+        validate(bits != 8 && bits != 10 && bits != 16 && bits != 32,
+                 "bits must be set to 8, 9, 10, 16 or 32.");
+        validate((bits + 7) / 8 != sample_bytes, "invalid bits specified.");
+
         arch_t arch = get_arch(args[5].AsInt(-1));
 
-        return new YadifMod2(child, edeint, order, field, mode, arch);
+        return new YadifMod2(child, edeint, order, field, mode, bits, arch);
 
     } catch (std::runtime_error& e) {
         env->ThrowError("yadifmod2: %s", e.what());
@@ -289,7 +310,8 @@ AvisynthPluginInit3(ise_t* env, const AVS_Linkage* vectors)
         "[field]i"
         "[mode]i"
         "[edeint]c"
-        "[opt]i";
+        "[opt]i"
+        "[bits]i";
 
     env->AddFunction("yadifmod2", args, create_yadifmod2, nullptr);
 

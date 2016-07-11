@@ -1,11 +1,15 @@
 #ifndef YADIF_MOD2_COMMON_H
 #define YADIF_MOD2_COMMON_H
 
+#include <cstdint>
+
 
 typedef enum {
     NO_SIMD,
     USE_SSE2,
     USE_SSSE3,
+    USE_SSE41,
+    USE_AVX,
     USE_AVX2,
 } arch_t;
 
@@ -19,6 +23,8 @@ typedef void(__stdcall *proc_filter_t)(
     const int epitch2, const int dpitch2, const int count);
 
 
+typedef void(__stdcall *interpolate_t)(
+    uint8_t* dstp, const uint8_t* srcp, int stride, int width);
 
 #endif
 

@@ -5,20 +5,20 @@
 
 ### Info:
 
-	version 0.0.4-1
+	version 0.1.0
 
 ### Requirement:
-	- Avisynth2.6.0final/Avisynth+r2005 or greater.
+	- Avisynth2.6.0final/Avisynth+r2023 or greater.
 	- WindowsVista SP2 or later.
 	- Visual C++ Redistributable Packages for Visual Studio 2015.
 
 ### Syntax:
 
-	yadifmod2(clip, int "order", int "field", int "mode", clip "edeint", int "opt")
+	yadifmod2(clip, int "order", int "field", int "mode", clip "edeint", int "bits", int "opt")
 
 ####	clip -
 
-		All planar formats( YV24 / YV16 / YV12 / YV411 / Y8 ) are supported.
+		All planar 8/16/float formats are supported.
 
 ####	order -
 
@@ -53,7 +53,7 @@
 
 		If this is not set, yadifmod2 will generate spatial predictions itself as same as yadif.
 
-		This clip must be the same width, height, and colorspace as the input clip.
+		This clip must be the same width, height, colorspace and bit depth as the input clip.
 		If using same rate output, this clip should have the same number of frames as the input.
 		If using double rate output, this clip should have twice as many frames as the input.
 
@@ -61,14 +61,16 @@
 
 		Controls which cpu optimizations are used.
 
-		 0 = Use C routine.
-		 1 = Use SSE2 routine.
-		 2 = Use SSE2 + SSSE3 routine if possible. When SSSE3 can't be used, fallback to 1.
-		 3 = Use AVX2 routine if possible. When AVX2 can't be used, fallback to 2.(default)
+		 0 = Use C++ routine.
+		 1 = Use SSE2 + SSE routine if possible. When SSE2 can't be used, fallback to 0.
+		 2 = Use SSSE3 + SSE2 + SSE routine if possible. When SSSE3 can't be used, fallback to 1.
+		 3 = Use SSE4.1 + SSSE3 + SSE2 + SSE routine if possible. When SSE4.1 can't be used, fallback to 2.
+		 4 = Use SSE4.1 + SSSE3 + SSE2 + AVX routine if possible. When AVX can't be used, fallback to 3.
+		 others = Use AVX2 + AVX routine if possible. When AVX2 can't be used, fallback to 4.(default)
 
 ### Note:
 
-		- yadifmod2_avx2.dll is for AVX2 supported CPUs.(it is compiled with /arch:AVX2).
+		- yadifmod2_avx.dll is for AVX supported CPUs.(it is compiled with /arch:AVX).
 
 
 ### Changelog:
@@ -95,6 +97,9 @@
 
 	0.0.4-1(20160705)
 		Update avisynth.h to Avisynth+MT r2005
+
+	0.1.0 (20160707)
+		Add support Avisynth+MT's high bit depth formats.(back port from VapourSynth version)
 
 ###Source code:
 

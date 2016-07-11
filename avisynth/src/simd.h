@@ -23,243 +23,591 @@
 #ifndef YADIF_MOD_2_SIMD_H
 #define YADIF_MOD_2_SIMD_H
 
-#if defined (__AVX2__)
+#if defined (__AVX__)
     #include <immintrin.h>
 #else
-    #include <tmmintrin.h>
+    #include <smmintrin.h>
 #endif
 #include "common.h"
 
 
-#define SFINLINE static __forceinline
+#define F_INLINE __forceinline
 
 
 
-template <typename T>
-T zero();
-
-template <typename T>
-T load_half(const uint8_t* p);
-
-template <typename T>
-void store_half(uint8_t * p, const T & x) {}
-
+//-------------------------LOAD------------------------------------------------
+template <typename V, typename T, arch_t A>
+static F_INLINE V load(const uint8_t* ptr);
 
 template <>
-SFINLINE __m128i zero<__m128i>()
+F_INLINE __m128 load<__m128, float, USE_SSE2>(const uint8_t* ptr)
 {
-    return _mm_setzero_si128();
+    return _mm_loadu_ps(reinterpret_cast<const float*>(ptr));
+}
+template <>
+F_INLINE __m128i load<__m128i, int16_t, USE_SSE2>(const uint8_t* ptr)
+{
+    return _mm_loadu_si128(reinterpret_cast<const __m128i*>(ptr));
+}
+template <>
+F_INLINE __m128i load<__m128i, uint8_t, USE_SSE2>(const uint8_t* ptr)
+{
+    __m128i t = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(ptr));
+    return _mm_unpacklo_epi8(t, _mm_setzero_si128());
+}
+template <>
+F_INLINE __m128i load<__m128i, uint16_t, USE_SSE2>(const uint8_t* ptr)
+{
+    __m128i t = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(ptr));
+    return _mm_unpacklo_epi16(t, _mm_setzero_si128());
 }
 
 template <>
-SFINLINE __m128i load_half<__m128i>(const uint8_t* p)
+F_INLINE __m128i load<__m128i, int16_t, USE_SSSE3>(const uint8_t* ptr)
 {
-    __m128i t = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(p));
-    return _mm_unpacklo_epi8(t, zero<__m128i>());
+    return load<__m128i, int16_t, USE_SSE2>(ptr);
+}
+template <>
+F_INLINE __m128i load<__m128i, uint8_t, USE_SSSE3>(const uint8_t* ptr)
+{
+    __m128i t = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(ptr));
+    return _mm_unpacklo_epi8(t, _mm_setzero_si128());
+}
+template <>
+F_INLINE __m128i load<__m128i, uint16_t, USE_SSSE3>(const uint8_t* ptr)
+{
+    __m128i t = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(ptr));
+    return _mm_unpacklo_epi16(t, _mm_setzero_si128());
 }
 
 template <>
-SFINLINE void store_half<__m128i>(uint8_t* p, const __m128i& x)
+F_INLINE __m128i load<__m128i, int16_t, USE_SSE41>(const uint8_t* ptr)
+{
+    return load<__m128i, int16_t, USE_SSE2>(ptr);
+}
+template <>
+F_INLINE __m128i load<__m128i, uint8_t, USE_SSE41>(const uint8_t* ptr)
+{
+    __m128i t = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(ptr));
+    return _mm_cvtepu8_epi16(t);
+}
+template <>
+F_INLINE __m128i load<__m128i, uint16_t, USE_SSE41>(const uint8_t* ptr)
+{
+    __m128i t = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(ptr));
+    return _mm_cvtepu16_epi32(t);
+}
+
+#if defined(__AVX__)
+template <>
+F_INLINE __m256 load<__m256, float, USE_AVX>(const uint8_t* ptr)
+{
+    return _mm256_loadu_ps(reinterpret_cast<const float*>(ptr));
+}
+
+template <>
+F_INLINE __m256i load<__m256i, int16_t, USE_AVX2>(const uint8_t* ptr)
+{
+    return _mm256_loadu_si256(reinterpret_cast<const __m256i*>(ptr));
+}
+template <>
+F_INLINE __m256i load<__m256i, uint8_t, USE_AVX2>(const uint8_t* ptr)
+{
+    __m128i t = _mm_loadu_si128(reinterpret_cast<const __m128i*>(ptr));
+    return _mm256_cvtepu8_epi16(t);
+}
+template <>
+F_INLINE __m256i load<__m256i, uint16_t, USE_AVX2>(const uint8_t* ptr)
+{
+    __m128i t = _mm_loadu_si128(reinterpret_cast<const __m128i*>(ptr));
+    return _mm256_cvtepu16_epi32(t);
+}
+
+#endif //__AVX__
+
+//-------------------STORE---------------------------------------------------
+template <typename T>
+static F_INLINE void store(uint8_t* p, const __m128& x)
+{
+    _mm_stream_ps(reinterpret_cast<float*>(p), x);
+}
+
+template <typename T>
+static F_INLINE void store(uint8_t* p, const __m128i& x)
+{
+    _mm_stream_si128(reinterpret_cast<__m128i*>(p), x);
+}
+template <>
+F_INLINE void store<uint8_t>(uint8_t* p, const __m128i& x)
 {
     _mm_storel_epi64(reinterpret_cast<__m128i*>(p), _mm_packus_epi16(x, x));
 }
-
-SFINLINE __m128i and_reg(const __m128i& x, const __m128i& y)
+template <>
+F_INLINE void store<uint16_t>(uint8_t* p, const __m128i& x)
 {
-    return _mm_and_si128(x, y);
+    _mm_storel_epi64(reinterpret_cast<__m128i*>(p), _mm_packus_epi32(x, x));
 }
 
-SFINLINE __m128i or_reg(const __m128i& x, const __m128i& y)
+#if defined(__AVX__)
+template <typename T>
+static F_INLINE void store(uint8_t* p, const __m256& x)
 {
-    return _mm_or_si128(x, y);
+    _mm256_stream_ps(reinterpret_cast<float*>(p), x);
 }
 
-SFINLINE __m128i andnot_reg(const __m128i& x, const __m128i& y)
+template <typename T>
+static F_INLINE void store(uint8_t* p, const __m256i& x)
 {
-    return _mm_andnot_si128(x, y);
+    _mm256_stream_si256(reinterpret_cast<__m256i*>(p), x);
 }
-
-SFINLINE __m128i xor_reg(const __m128i& x, const __m128i& y)
+template <>
+F_INLINE void store<uint8_t>(uint8_t* p, const __m256i& x)
 {
-    return _mm_xor_si128(x, y);
+    __m256i t = _mm256_packus_epi16(x, _mm256_permute2x128_si256(x, x, 0x01));
+    _mm_stream_si128(reinterpret_cast<__m128i*>(p), _mm256_extracti128_si256(t, 0));
 }
-
-SFINLINE __m128i max_i16(const __m128i& x, const __m128i& y)
+template <>
+F_INLINE void store<uint16_t>(uint8_t* p, const __m256i& x)
 {
-    return _mm_max_epi16(x, y);
+    __m256i t = _mm256_packus_epi32(x, _mm256_permute2x128_si256(x, x, 0x01));
+    _mm_stream_si128(reinterpret_cast<__m128i*>(p), _mm256_extracti128_si256(t, 0));
 }
-
-SFINLINE __m128i min_i16(const __m128i& x, const __m128i& y)
-{
-    return _mm_min_epi16(x, y);
-}
-
-SFINLINE __m128i sub_i16(const __m128i& x, const __m128i& y)
-{
-    return _mm_sub_epi16(x, y);
-}
-
-SFINLINE __m128i add_i16(const __m128i& x, const __m128i& y)
-{
-    return _mm_add_epi16(x, y);
-}
-
-SFINLINE __m128i div2_i16(const __m128i& x)
-{
-    return  _mm_srli_epi16(x, 1);
-}
-
-SFINLINE __m128i cmpeq_i16(const __m128i& x, const __m128i& y)
-{
-    return _mm_cmpeq_epi16(x, y);
-}
+#endif // __AVX__
 
 
-SFINLINE __m128i cmpgt_i16(const __m128i& x, const __m128i& y)
-{
-    return _mm_cmpgt_epi16(x, y);
-}
-
-template <typename T, arch_t A>
-SFINLINE T abs_diff_i16(const T& x, const T& y)
-{
-    return max_i16(sub_i16(x, y), sub_i16(y, x)); 
-}
+//-------------------SETZERO-------------------------------------------------
+template <typename V>
+static F_INLINE V setzero();
 
 template <>
-SFINLINE __m128i
-abs_diff_i16<__m128i, USE_SSSE3>(const __m128i& x, const __m128i& y)
+F_INLINE __m128 setzero<__m128>()
 {
-    return _mm_abs_epi16(sub_i16(x, y));
+    return _mm_setzero_ps();
 }
-
-SFINLINE __m128i blendv(const __m128i& x, const __m128i& y, const __m128i& m)
-{
-    return or_reg(and_reg(m, y), andnot_reg(m, x));
-}
-
-
-#if defined(__AVX2__)
-
 template <>
-SFINLINE __m256i zero<__m256i>()
+F_INLINE __m128i setzero<__m128i>()
+{
+    return _mm_setzero_si128();
+}
+#if defined(__AVX__)
+template <>
+F_INLINE __m256 setzero<__m256>()
+{
+    return _mm256_setzero_ps();
+}
+template <>
+F_INLINE __m256i setzero<__m256i>()
 {
     return _mm256_setzero_si256();
 }
+#endif // __AVX__
 
+
+
+//-------------------ADD------------------------------------------------------
+template <typename T>
+static F_INLINE __m128 add(const __m128& x, const __m128& y)
+{
+    return _mm_add_ps(x, y);
+}
+
+template <typename T>
+static F_INLINE __m128i add(const __m128i& x, const __m128i& y)
+{
+    return _mm_add_epi16(x, y);
+}
 template <>
-SFINLINE __m256i load_half<__m256i>(const uint8_t* p)
+F_INLINE __m128i add<uint16_t>(const __m128i& x, const __m128i& y)
 {
-    __m128i t = _mm_loadu_si128(reinterpret_cast<const __m128i*>(p));
-    return _mm256_cvtepu8_epi16(t);
+    return _mm_add_epi32(x, y);
 }
 
+#if defined(__AVX__)
+template <typename T>
+static F_INLINE __m256 add(const __m256& x, const __m256& y)
+{
+    return _mm256_add_ps(x, y);
+}
+
+template <typename T>
+static F_INLINE __m256i add(const __m256i& x, const __m256i& y)
+{
+    return _mm256_add_epi16(x, y);
+}
 template <>
-SFINLINE void store_half<__m256i>(uint8_t* p, const __m256i& x)
+F_INLINE __m256i add<uint16_t>(const __m256i& x, const __m256i& y)
 {
-    __m256i t = _mm256_packus_epi16(x, _mm256_permute2x128_si256(x, x, 0x01));
-    _mm_stream_si128(reinterpret_cast<__m128i*>(p),
-        _mm256_extracti128_si256(t, 0));
+    return _mm256_add_epi32(x, y);
+}
+#endif // __AVX__
+
+
+
+//-------------------SUB-----------------------------------------------------
+template <typename T>
+static F_INLINE __m128 sub(const __m128& x, const __m128& y)
+{
+    return _mm_sub_ps(x, y);
 }
 
-SFINLINE __m256i and_reg(const __m256i& x, const __m256i& y)
+template <typename T>
+static F_INLINE __m128i sub(const __m128i& x, const __m128i& y)
 {
-    return _mm256_and_si256(x, y);
+    return _mm_sub_epi16(x, y);
+}
+template <>
+F_INLINE __m128i sub<uint16_t>(const __m128i& x, const __m128i& y)
+{
+    return _mm_sub_epi32(x, y);
 }
 
-SFINLINE __m256i or_reg(const __m256i& x, const __m256i& y)
+#if defined(__AVX__)
+template <typename T>
+static F_INLINE __m256 sub(const __m256& x, const __m256& y)
 {
-    return _mm256_or_si256(x, y);
+    return _mm256_sub_ps(x, y);
 }
 
-SFINLINE __m256i andnot_reg(const __m256i& x, const __m256i& y)
-{
-    return _mm256_andnot_si256(x, y);
-}
-
-SFINLINE __m256i xor_reg(const __m256i& x, const __m256i& y)
-{
-    return _mm256_xor_si256(x, y);
-}
-
-SFINLINE __m256i max_i16(const __m256i& x, const __m256i& y)
-{
-    return _mm256_max_epi16(x, y);
-}
-
-SFINLINE __m256i min_i16(const __m256i& x, const __m256i& y)
-{
-    return _mm256_min_epi16(x, y);
-}
-
-SFINLINE __m256i sub_i16(const __m256i& x, const __m256i& y)
+template <typename T>
+static F_INLINE __m256i sub(const __m256i& x, const __m256i& y)
 {
     return _mm256_sub_epi16(x, y);
 }
 
-SFINLINE __m256i add_i16(const __m256i& x, const __m256i& y)
+template <>
+F_INLINE __m256i sub<uint16_t>(const __m256i& x, const __m256i& y)
 {
-    return _mm256_add_epi16(x, y);
+    return _mm256_sub_epi32(x, y);
+}
+#endif // __AVX__
+
+
+
+//----------------------DIV2-------------------------------------------
+
+template <typename T>
+static F_INLINE __m128 div2(const __m128& x)
+{
+    static __m128 coef = _mm_set1_ps(0.5f);
+    return _mm_mul_ps(x, coef);
 }
 
-SFINLINE __m256i div2_i16(const __m256i& x)
+template <typename T>
+static F_INLINE __m128i div2(const __m128i& x)
 {
-    return  _mm256_srli_epi16(x, 1);
+    return _mm_srli_epi16(x, 1);
+}
+template <>
+F_INLINE __m128i div2<uint16_t>(const __m128i& x)
+{
+    return _mm_srli_epi32(x, 1);
+}
+
+#if defined(__AVX__)
+template <typename T>
+static F_INLINE __m256 div2(const __m256& x)
+{
+    static __m256 coef = _mm256_set1_ps(0.5f);
+    return _mm256_mul_ps(x, coef);
+}
+
+template <typename T>
+static F_INLINE __m256i div2(const __m256i& x)
+{
+    return _mm256_srli_epi16(x, 1);
 }
 
 template <>
-SFINLINE __m256i
-abs_diff_i16<__m256i, USE_AVX2>(const __m256i& x, const __m256i& y)
+F_INLINE __m256i div2<uint16_t>(const __m256i& x)
 {
-    return _mm256_abs_epi16(sub_i16(x, y));
+    return _mm256_srli_epi32(x, 1);
+}
+#endif // __AVX__
+
+
+
+//-------------------MIN----------------------------------------------------
+
+template <typename T>
+static F_INLINE __m128 min(const __m128& x, const __m128& y)
+{
+    return _mm_min_ps(x, y);
 }
 
-SFINLINE __m256i cmpeq_i16(const __m256i& x, const __m256i& y)
+template <typename T>
+static F_INLINE __m128i min(const __m128i& x, const __m128i& y)
 {
-    return _mm256_cmpeq_epi16(x, y);
+    return _mm_min_epi16(x, y);
+}
+template <>
+F_INLINE __m128i min<uint16_t>(const __m128i& x, const __m128i& y)
+{
+    return _mm_min_epi32(x, y);
 }
 
-SFINLINE __m256i cmpgt_i16(const __m256i& x, const __m256i& y)
+#if defined(__AVX__)
+template<typename T>
+static F_INLINE __m256 min(const __m256& x, const __m256& y)
+{
+    return _mm256_min_ps(x, y);
+}
+
+template <typename T>
+static F_INLINE __m256i min(const __m256i& x, const __m256i& y)
+{
+    return _mm256_min_epi16(x, y);
+}
+template <>
+F_INLINE __m256i min<uint16_t>(const __m256i& x, const __m256i& y)
+{
+    return _mm256_min_epi32(x, y);
+}
+#endif // __AVX__
+
+
+
+//-----------------------MAX-----------------------------------------------
+
+template <typename T>
+static F_INLINE __m128 max(const __m128& x, const __m128& y)
+{
+    return _mm_max_ps(x, y);
+}
+
+template <typename T>
+static F_INLINE __m128i max(const __m128i& x, const __m128i& y)
+{
+    return _mm_max_epi16(x, y);
+}
+template <>
+F_INLINE __m128i max<uint16_t>(const __m128i& x, const __m128i& y)
+{
+    return _mm_max_epi32(x, y);
+}
+
+#if defined(__AVX__)
+template<typename T>
+static F_INLINE __m256 max(const __m256& x, const __m256& y)
+{
+    return _mm256_max_ps(x, y);
+}
+
+template <typename T>
+static F_INLINE __m256i max(const __m256i& x, const __m256i& y)
+{
+    return _mm256_max_epi16(x, y);
+}
+
+template <>
+F_INLINE __m256i max<uint16_t>(const __m256i& x, const __m256i& y)
+{
+    return _mm256_max_epi32(x, y);
+}
+#endif // __AVX__
+
+
+
+
+//------------------CMPGT-----------------------------------------
+template <typename T>
+static F_INLINE __m128 cmpgt(const __m128& x, const __m128& y)
+{
+    return _mm_cmpgt_ps(x, y);
+}
+
+template <typename T>
+static F_INLINE __m128i cmpgt(const __m128i& x, const __m128i& y)
+{
+    return _mm_cmpgt_epi16(x, y);
+}
+template <>
+F_INLINE __m128i cmpgt<uint16_t>(const __m128i& x, const __m128i& y)
+{
+    return _mm_cmpgt_epi32(x, y);
+}
+
+#if defined(__AVX__)
+template <typename T>
+static F_INLINE __m256 cmpgt(const __m256& x, const __m256& y)
+{
+    return _mm256_cmp_ps(x, y, _CMP_GT_OS);
+}
+
+template <typename T>
+static F_INLINE __m256i cmpgt(const __m256i& x, const __m256i& y)
 {
     return _mm256_cmpgt_epi16(x, y);
 }
 
-SFINLINE __m256i blendv(const __m256i& x, const __m256i& y, const __m256i& m)
+template <>
+F_INLINE __m256i cmpgt<uint16_t>(const __m256i& x, const __m256i& y)
+{
+    return _mm256_cmpgt_epi32(x, y);
+}
+#endif // __AVX__
+
+
+
+
+
+//------------------MINUS-------------------------------------------
+template <typename V, typename T>
+static F_INLINE V minus(const V& x)
+{
+    return sub<T>(setzero<V>(), x);
+}
+
+
+//--------------------ABS_DIFF--------------------------------------------
+template <typename T, arch_t A>
+static F_INLINE __m128 abs_diff(const __m128& x, const __m128& y)
+{
+    return _mm_max_ps(_mm_sub_ps(x, y), _mm_sub_ps(y, x));
+}
+
+template <typename T, arch_t A>
+static F_INLINE __m128i abs_diff(const __m128i& x, const __m128i& y)
+{
+    return _mm_or_si128(_mm_subs_epu16(x, y), _mm_subs_epu16(y, x));
+}
+template <>
+F_INLINE __m128i abs_diff<uint16_t, USE_SSE2>(const __m128i& x, const __m128i& y)
+{
+    return _mm_max_epi32(_mm_sub_epi32(x, y), _mm_sub_epi32(y, x));
+}
+
+template <>
+F_INLINE __m128i abs_diff<uint8_t, USE_SSSE3>(const __m128i& x, const __m128i& y)
+{
+    return _mm_abs_epi16(_mm_sub_epi16(x, y));
+}
+
+template <>
+F_INLINE __m128i abs_diff<int16_t, USE_SSSE3>(const __m128i& x, const __m128i& y)
+{
+    return _mm_abs_epi16(_mm_sub_epi16(x, y));
+}
+
+template <>
+F_INLINE __m128i abs_diff<uint16_t, USE_SSSE3>(const __m128i& x, const __m128i& y)
+{
+    return _mm_abs_epi32(_mm_sub_epi32(x, y));
+}
+
+template <>
+F_INLINE __m128i abs_diff<uint8_t, USE_SSE41>(const __m128i& x, const __m128i& y)
+{
+    return abs_diff<uint8_t, USE_SSSE3>(x, y);
+}
+
+template <>
+F_INLINE __m128i abs_diff<int16_t, USE_SSE41>(const __m128i& x, const __m128i& y)
+{
+    return abs_diff<int16_t, USE_SSSE3>(x, y);
+}
+
+template <>
+F_INLINE __m128i abs_diff<uint16_t, USE_SSE41>(const __m128i& x, const __m128i& y)
+{
+    return abs_diff<uint16_t, USE_SSSE3>(x, y);
+}
+
+#if defined(__AVX__)
+template <typename T, arch_t A>
+static F_INLINE __m256 abs_diff(const __m256& x, const __m256& y)
+{
+    return _mm256_max_ps(sub<T>(x, y), sub<T>(y, x));
+}
+
+template <typename T, arch_t A>
+static F_INLINE __m256i abs_diff(const __m256i& x, const __m256i& y)
+{
+    return _mm256_abs_epi16(_mm256_sub_epi16(x, y));
+}
+
+template <>
+F_INLINE __m256i
+abs_diff<uint16_t, USE_AVX2>(const __m256i& x, const __m256i& y)
+{
+    return _mm256_abs_epi32(_mm256_sub_epi32(x, y));
+}
+#endif // __AVX__
+
+
+
+template <typename V, typename T>
+static F_INLINE V average(const V& x, const V& y)
+{
+    return div2<T>(add<T>(x, y));
+}
+
+
+template <typename T>
+static F_INLINE __m128 adjust(const __m128& x)
+{
+    return x;
+}
+template <typename T>
+static F_INLINE __m128i adjust(const __m128i& x)
+{
+    return add<T>(x, _mm_cmpeq_epi32(x, x));
+}
+
+#if defined(__AVX__)
+template <typename T>
+static F_INLINE __m256 adjust(const __m256& x)
+{
+    return x;
+}
+
+template <typename T>
+static F_INLINE __m256i adjust(const __m256i& x)
+{
+    return add<T>(x, _mm256_cmpeq_epi32(x, x));
+}
+#endif // __AVX__
+
+
+template <arch_t A>
+static F_INLINE __m128
+blendv(const __m128& x, const __m128& y, const __m128& m)
+{
+    return _mm_or_ps(_mm_and_ps(m, y), _mm_andnot_ps(m, x));
+}
+
+template <arch_t A>
+static F_INLINE __m128i
+blendv(const __m128i& x, const __m128i& y, const __m128i& m)
+{
+    return _mm_or_si128(_mm_and_si128(m, y), _mm_andnot_si128(m, x));
+}
+
+template <>
+F_INLINE __m128i
+blendv<USE_SSE41>(const __m128i& x, const __m128i& y, const __m128i& m)
+{
+    return _mm_blendv_epi8(x, y, m);
+}
+
+#if defined(__AVX__)
+template <arch_t A>
+static F_INLINE __m256
+blendv(const __m256& x, const __m256& y, const __m256& m)
+{
+    return _mm256_blendv_ps(x, y, m);
+}
+
+template <arch_t A>
+static F_INLINE __m256i
+blendv(const __m256i& x, const __m256i& y, const __m256i& m)
 {
     return _mm256_blendv_epi8(x, y, m);
 }
+#endif // __AVX__
 
-#endif  //__AVX2__
 
-template <typename T>
-SFINLINE T min3(const T& x, const T& y, const T& z)
-{
-    return min_i16(min_i16(x, y), z);
-}
 
-template <typename T>
-SFINLINE T max3(const T& x, const T& y, const T& z)
-{
-    return max_i16(max_i16(x, y), z);
-}
+#endif //YADIFMOD2_SIMD_H
 
-template <typename T>
-SFINLINE T clamp_i16(const T& x, const T& min_, const T& max_)
-{
-    return max_i16(min_i16(x, max_), min_);
-}
 
-template <typename T>
-SFINLINE T minus_i16(const T& x)
-{
-    return sub_i16(zero<T>(), x);
-}
-
-template <typename T>
-SFINLINE T avg_i16(const T& x, const T& y)
-{
-    return div2_i16(add_i16(x, y));
-}
-
-#endif
 

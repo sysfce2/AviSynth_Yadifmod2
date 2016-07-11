@@ -167,6 +167,16 @@ int has_ssse3()
     return !!(get_simd_support_info() & CPU_SSSE3_SUPPORT);
 }
 
+int has_sse41()
+{
+    return !!(get_simd_support_info() & CPU_SSE4_1_SUPPORT);
+}
+
+int has_avx()
+{
+    return !!(get_simd_support_info() & CPU_AVX_SUPPORT);
+}
+
 int has_avx2()
 {
     return !!(get_simd_support_info() & CPU_AVX2_SUPPORT);
