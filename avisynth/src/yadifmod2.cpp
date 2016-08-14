@@ -40,7 +40,7 @@
 
 
 
-#define YADIF_MOD_2_VERSION "0.1.0"
+#define YADIF_MOD_2_VERSION "0.2.0"
 
 
 typedef IScriptEnvironment ise_t;
@@ -54,9 +54,9 @@ class YadifMod2 : public GenericVideoFilter {
     int order;
     int field;
     int mode;
-    int numPlanes;
     int prevFirst;
-    int bits;
+    int planes[3];
+    int numPlanes;
 
     proc_filter_t mainProc;
     interpolate_t interp;
@@ -66,6 +66,10 @@ public:
               int bits, arch_t arch);
     ~YadifMod2() {}
     PVideoFrame __stdcall GetFrame(int n, ise_t* env);
+    int __stdcall SetCacheHints(int hints, int)
+    {
+        return hints == CACHE_GET_MTMODE ? MT_NICE_FILTER : 0;
+    }
 };
 
 
@@ -73,10 +77,20 @@ extern proc_filter_t get_main_proc(int bits, bool sp_check, bool has_edeint, arc
 extern interpolate_t get_interp(int bytes_per_sample);
 
 
-YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, int b, arch_t arch) :
-    GenericVideoFilter(c), edeint(e), order(o), field(f), mode(m), bits(b)
+YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, int bits, arch_t arch) :
+    GenericVideoFilter(c), edeint(e), order(o), field(f), mode(m)
 {
     numPlanes = vi.pixel_type & VideoInfo::CS_INTERLEAVED ? 1 : 3;
+
+    if (vi.IsYUV()) {
+        planes[0] = PLANAR_Y;
+        planes[1] = PLANAR_U;
+        planes[2] = PLANAR_V;
+    } else {
+        planes[0] = PLANAR_G;
+        planes[0] = PLANAR_B;
+        planes[0] = PLANAR_R;
+    }
 
     nfSrc = vi.num_frames;
 
@@ -114,8 +128,6 @@ YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, int b, arch_t arch) 
 
 PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
 {
-    const int planes[3] = { PLANAR_Y, PLANAR_U, PLANAR_V };
-
     PVideoFrame edeint;
     if (this->edeint) {
         edeint = this->edeint->GetFrame(n, env);
@@ -237,11 +249,27 @@ static arch_t get_arch(int opt) noexcept
 #endif
 }
 
+
 static inline void validate(bool cond, const char* msg)
 {
     if (cond) {
         throw std::runtime_error(msg);
     }
+}
+
+
+static int get_bits(int pixel_type)
+{
+    int bits = pixel_type & VideoInfo::CS_Sample_Bits_Mask;
+    switch (bits) {
+    case VideoInfo::CS_Sample_Bits_8: return 8;
+    case VideoInfo::CS_Sample_Bits_10: return 10;
+    case VideoInfo::CS_Sample_Bits_12:
+    case VideoInfo::CS_Sample_Bits_14:
+    case VideoInfo::CS_Sample_Bits_16: return 16;
+    case VideoInfo::CS_Sample_Bits_32: return 32;
+    }
+    return 0;
 }
 
 
@@ -252,6 +280,7 @@ create_yadifmod2(AVSValue args, void* user_data, ise_t* env)
         PClip child = args[0].AsClip();
         const VideoInfo& vi = child->GetVideoInfo();
         validate(!vi.IsPlanar(), "input clip must be a planar format.");
+        validate(vi.IsYUVA() || vi.IsPlanarRGBA(), "alpha is not supported.");
 
         int order = args[1].AsInt(-1);
         validate(order < -1 || order > 1, "order must be set to -1, 0 or 1.");
@@ -277,13 +306,7 @@ create_yadifmod2(AVSValue args, void* user_data, ise_t* env)
         bool is_plus = env->FunctionExists("SetFilterMTMode");
         int sample_bytes = vi.BytesFromPixels(1);
 
-        int bits = is_plus ? args[6].AsInt(sample_bytes * 8) : 8;
-        if (bits == 9) {
-            bits = 10;
-        }
-        validate(bits != 8 && bits != 10 && bits != 16 && bits != 32,
-                 "bits must be set to 8, 9, 10, 16 or 32.");
-        validate((bits + 7) / 8 != sample_bytes, "invalid bits specified.");
+        int bits = get_bits(vi.pixel_type);
 
         arch_t arch = get_arch(args[5].AsInt(-1));
 
@@ -310,15 +333,9 @@ AvisynthPluginInit3(ise_t* env, const AVS_Linkage* vectors)
         "[field]i"
         "[mode]i"
         "[edeint]c"
-        "[opt]i"
-        "[bits]i";
+        "[opt]i";
 
     env->AddFunction("yadifmod2", args, create_yadifmod2, nullptr);
-
-    if (env->FunctionExists("SetFilterMTMode")) {
-        static_cast<IScriptEnvironment2*>(
-            env)->SetFilterMTMode("yadifmod2", MT_NICE_FILTER, true);
-    }
 
     return "yadifmod2 = yadif + yadifmod ... ver. " YADIF_MOD_2_VERSION;
 }

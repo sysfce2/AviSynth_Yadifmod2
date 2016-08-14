@@ -102,7 +102,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
@@ -137,8 +137,12 @@
     <ClCompile Include="..\src\yadifmod2.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\resource.h" />
     <ClInclude Include="..\src\simd.h" />
     <ClInclude Include="..\src\common.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\src\yadifmod2.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

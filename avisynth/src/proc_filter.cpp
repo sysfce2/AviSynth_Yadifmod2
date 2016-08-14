@@ -212,11 +212,11 @@ proc_cpp(const uint8_t* currp, const uint8_t* prevp, const uint8_t* nextp,
 }
 
 
-#include "simd.h"
-
 template <typename V, typename T, arch_t ARCH>
 static F_INLINE V calc_score(const uint8_t* ct, const uint8_t* cb, int n)
 {
+    using namespace simd;
+
     constexpr int s = sizeof(T);
     V ad0 = abs_diff<T, ARCH>(load<V, T, ARCH>(ct + (n - 1) * s),
         load<V, T, ARCH>(cb - (n + 1) * s));
@@ -231,6 +231,8 @@ static F_INLINE V calc_score(const uint8_t* ct, const uint8_t* cb, int n)
 template <typename V, typename T, arch_t ARCH>
 static F_INLINE V calc_spatial_pred(const uint8_t* ct, const uint8_t* cb)
 {
+    using namespace simd;
+
     constexpr int s = sizeof(T);
 
     V score = adjust<T>(calc_score<V, T, ARCH>(ct, cb, 0));
@@ -269,6 +271,8 @@ proc_simd(const uint8_t* currp, const uint8_t* prevp, const uint8_t* nextp,
     const int fm_pstride, const int fm_nstride, const int estride2,
     const int dstride2, const int count) noexcept
 {
+    using namespace simd;
+
     const uint8_t* ct = currp - cstride;
     const uint8_t* cb = currp + cstride;
     const uint8_t* pt = prevp - pstride;

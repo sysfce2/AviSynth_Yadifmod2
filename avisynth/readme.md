@@ -5,20 +5,20 @@
 
 ### Info:
 
-	version 0.1.0
+	version 0.2.0
 
 ### Requirement:
-	- Avisynth2.6.0final/Avisynth+r2023 or greater.
+	- Avisynth2.6.0final/Avisynth+r2150 or greater.
 	- WindowsVista SP2 or later.
 	- Visual C++ Redistributable Packages for Visual Studio 2015.
 
 ### Syntax:
 
-	yadifmod2(clip, int "order", int "field", int "mode", clip "edeint", int "bits", int "opt")
+	yadifmod2(clip, int "order", int "field", int "mode", clip "edeint", int "opt")
 
 ####	clip -
 
-		All planar 8/16/float formats are supported.
+		All planar 8/10/12/14/16/float formats except alpha are supported.
 
 ####	order -
 
@@ -99,7 +99,10 @@
 		Update avisynth.h to Avisynth+MT r2005
 
 	0.1.0 (20160707)
-		Add support Avisynth+MT's high bit depth formats.(back port from VapourSynth version)
+		Add Avisynth+MT's high bit depth formats support.(back port from VapourSynth version)
+
+	0.2.0 (20160815)
+		Add Avisynth+MT's planar RGB and 10/12/14bits formats support.
 
 ###Source code:
 

@@ -34,7 +34,7 @@
 #define F_INLINE __forceinline
 
 
-
+namespace simd {
 //-------------------------LOAD------------------------------------------------
 template <typename V, typename T, arch_t A>
 static F_INLINE V load(const uint8_t* ptr);
@@ -605,7 +605,7 @@ blendv(const __m256i& x, const __m256i& y, const __m256i& m)
 }
 #endif // __AVX__
 
-
+}
 
 #endif //YADIFMOD2_SIMD_H
 
