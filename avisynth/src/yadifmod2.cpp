@@ -40,7 +40,7 @@
 
 
 
-#define YADIF_MOD_2_VERSION "0.2.0"
+#define YADIF_MOD_2_VERSION "0.2.1"
 
 
 typedef IScriptEnvironment ise_t;
@@ -110,11 +110,11 @@ YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, int bits, arch_t arc
 
     interp = get_interp(vi.ComponentSize());
 
-    if (arch == NO_SIMD && bits == 10) {
+    if (arch == arch_t::NO_SIMD && bits == 10) {
         bits = 16;
     }
-    if (arch != NO_SIMD && bits == 32) {
-        arch = arch < USE_AVX ? USE_SSE2 : USE_AVX;
+    if (arch != arch_t::NO_SIMD && bits == 32) {
+        arch = arch < arch_t::USE_AVX ? arch_t::USE_SSE2 : arch_t::USE_AVX;
     }
 
     mainProc = get_main_proc(bits, mode < 2, edeint != nullptr, arch);
@@ -167,13 +167,13 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
         if (ft != order) {
             fm_ppitch = cpitch * 2;
             fm_npitch = npitch * 2;
-            fm_prev = currp + begin * cpitch;
-            fm_next = nextp + begin * npitch;
+            fm_prev = currp + static_cast<int64_t>(begin) * cpitch;
+            fm_next = nextp + static_cast<int64_t>(begin) * npitch;
         } else {
             fm_ppitch = ppitch * 2;
             fm_npitch = cpitch * 2;
-            fm_prev = prevp + begin * ppitch;
-            fm_next = currp + begin * cpitch;
+            fm_prev = prevp + static_cast<int64_t>(begin) * ppitch;
+            fm_next = currp + static_cast<int64_t>(begin) * cpitch;
         }
 
         const uint8_t* edeintp = nullptr;
@@ -189,11 +189,11 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
         if (ft == 0) {
             memcpy(dstp, currp + cpitch, width);
             if (edeintp) {
-                memcpy(dstp + dpitch * (height - 2),
-                       edeintp + epitch * (height - 2), width);
+                memcpy(dstp + static_cast<int64_t>(dpitch) * (static_cast<int64_t>(height) - 2),
+                       edeintp + static_cast<int64_t>(epitch) * (static_cast<int64_t>(height) - 2), width);
             } else {
-                interp(dstp + dpitch * (height - 2),
-                       currp + cpitch * (height - 3), cpitch, width);
+                interp(dstp + static_cast<int64_t>(dpitch) * (static_cast<int64_t>(height) - 2),
+                       currp + static_cast<int64_t>(cpitch) * (static_cast<int64_t>(height) - 3), cpitch, width);
             }
         } else {
             if (edeintp) {
@@ -201,15 +201,15 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
             } else {
                 interp(dstp + dpitch, currp, cpitch, width);
             }
-            memcpy(dstp + dpitch * (height - 1),
-                   currp + cpitch * (height - 2), width);
+            memcpy(dstp + static_cast<int64_t>(dpitch) * (static_cast<int64_t>(height) - 1),
+                   currp + static_cast<int64_t>(cpitch) * (static_cast<int64_t>(height) - 2), width);
         }
-        env->BitBlt(dstp + (1 - ft) * dpitch, 2 * dpitch,
-                    currp + (1 - ft) * cpitch, 2 * cpitch, width, height / 2);
+        env->BitBlt(dstp + (1 - static_cast<int64_t>(ft)) * dpitch, 2 * dpitch,
+                    currp + (1 - static_cast<int64_t>(ft)) * cpitch, 2 * cpitch, width, height / 2);
 
-        mainProc(currp + begin * cpitch, prevp + begin * ppitch,
-                 nextp + begin * npitch, fm_prev, fm_next,
-                 edeintp + begin * epitch, dstp + begin * dpitch, width,
+        mainProc(currp + static_cast<int64_t>(begin) * cpitch, prevp + static_cast<int64_t>(begin) * ppitch,
+                 nextp + static_cast<int64_t>(begin) * npitch, fm_prev, fm_next,
+                 edeintp + static_cast<int64_t>(begin) * epitch, dstp + static_cast<int64_t>(begin) * dpitch, width,
                  cpitch, ppitch, npitch, fm_ppitch, fm_npitch, 2 * epitch,
                  2 * dpitch, count);
     }
@@ -218,34 +218,33 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
 }
 
 
-extern int has_sse2(void);
-extern int has_ssse3(void);
-extern int has_sse41(void);
-extern int has_avx(void);
-extern int has_avx2(void);
-
-
-static arch_t get_arch(int opt) noexcept
+static arch_t get_arch(int opt, ise_t* env) noexcept
 {
-    if (opt == 0 || !has_sse2()) {
-        return NO_SIMD;
+    const bool has_sse2 = env->GetCPUFlags() & CPUF_SSE2;
+    const bool has_ssse3 = env->GetCPUFlags() & CPUF_SSSE3;
+    const bool has_sse41 = env->GetCPUFlags() & CPUF_SSE4_1;
+    const bool has_avx = env->GetCPUFlags() & CPUF_AVX;
+    const bool has_avx2 = env->GetCPUFlags() & CPUF_AVX2;
+
+    if (opt == 0 || !has_sse2) {
+        return arch_t::NO_SIMD;
     }
-    if (opt == 1 || !has_ssse3()) {
-        return USE_SSE2;
+    if (opt == 1 || !has_ssse3) {
+        return arch_t::USE_SSE2;
     }
-    if (opt == 2 || !has_sse41()) {
-        return USE_SSSE3;
+    if (opt == 2 || !has_sse41) {
+        return arch_t::USE_SSSE3;
     }
 #if !defined(__AVX__)
-    return USE_SSE41;
+    return arch_t::USE_SSE41;
 #else
-    if (opt == 3 || !has_avx()) {
-        return USE_SSE41;
+    if (opt == 3 || !has_avx) {
+        return arch_t::USE_SSE41;
     }
-    if (opt == 4 || !has_avx2()) {
-        return USE_AVX;
+    if (opt == 4 || !has_avx2) {
+        return arch_t::USE_AVX;
     }
-    return USE_AVX2;
+    return arch_t::USE_AVX2;
 #endif
 }
 
@@ -308,7 +307,7 @@ create_yadifmod2(AVSValue args, void* user_data, ise_t* env)
 
         int bits = get_bits(vi.pixel_type);
 
-        arch_t arch = get_arch(args[5].AsInt(-1));
+        arch_t arch = get_arch(args[5].AsInt(-1), env);
 
         return new YadifMod2(child, edeint, order, field, mode, bits, arch);
 

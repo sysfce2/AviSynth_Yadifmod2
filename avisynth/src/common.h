@@ -3,15 +3,16 @@
 
 #include <cstdint>
 
+#define __AVX__
 
-typedef enum {
+enum class arch_t {
     NO_SIMD,
     USE_SSE2,
     USE_SSSE3,
     USE_SSE41,
     USE_AVX,
     USE_AVX2,
-} arch_t;
+};
 
 
 
