@@ -40,7 +40,7 @@
 
 
 
-#define YADIF_MOD_2_VERSION "0.2.1"
+#define YADIF_MOD_2_VERSION "0.2.2"
 
 
 typedef IScriptEnvironment ise_t;
@@ -57,13 +57,14 @@ class YadifMod2 : public GenericVideoFilter {
     int prevFirst;
     int planes[3];
     int numPlanes;
+    bool has_at_least_v8;
 
     proc_filter_t mainProc;
     interpolate_t interp;
 
 public:
     YadifMod2(PClip child, PClip edeint, int order, int field, int mode,
-              int bits, arch_t arch);
+              int bits, arch_t arch, ise_t* env);
     ~YadifMod2() {}
     PVideoFrame __stdcall GetFrame(int n, ise_t* env);
     int __stdcall SetCacheHints(int hints, int)
@@ -77,9 +78,13 @@ extern proc_filter_t get_main_proc(int bits, bool sp_check, bool has_edeint, arc
 extern interpolate_t get_interp(int bytes_per_sample);
 
 
-YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, int bits, arch_t arch) :
+YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, int bits, arch_t arch, ise_t* env) :
     GenericVideoFilter(c), edeint(e), order(o), field(f), mode(m)
 {
+    has_at_least_v8 = true;
+    try { env->CheckVersion(8); }
+
+    catch (const AvisynthError&) { has_at_least_v8 = false; }
     numPlanes = vi.pixel_type & VideoInfo::CS_INTERLEAVED ? 1 : 3;
 
     if (vi.IsYUV()) {
@@ -143,7 +148,8 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
     auto curr = child->GetFrame(n, env);
     auto prev = child->GetFrame(n == 0 ? prevFirst : n - 1, env);
 
-    auto dst = env->NewVideoFrame(vi);
+    PVideoFrame dst;
+    if (has_at_least_v8) dst = env->NewVideoFrameP(vi, &curr); else dst = env->NewVideoFrame(vi);
 
     for (int p = 0; p < numPlanes; ++p) {
 
@@ -309,7 +315,7 @@ create_yadifmod2(AVSValue args, void* user_data, ise_t* env)
 
         arch_t arch = get_arch(args[5].AsInt(-1), env);
 
-        return new YadifMod2(child, edeint, order, field, mode, bits, arch);
+        return new YadifMod2(child, edeint, order, field, mode, bits, arch, env);
 
     } catch (std::runtime_error& e) {
         env->ThrowError("yadifmod2: %s", e.what());
