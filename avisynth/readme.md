@@ -10,7 +10,7 @@
 ### Requirement:
 	- Avisynth2.6.0final/Avisynth+r2150 or greater.
 	- WindowsVista SP2 or later.
-	- Visual C++ Redistributable Packages for Visual Studio 2015.
+	- Visual C++ Redistributable Packages for Visual Studio 2019.
 
 ### Syntax:
 
