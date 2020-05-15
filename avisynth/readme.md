@@ -5,7 +5,7 @@
 
 ### Info:
 
-	version 0.2.0
+	version 0.2.2
 
 ### Requirement:
 	- Avisynth2.6.0final/Avisynth+r2150 or greater.
@@ -68,11 +68,6 @@
 		 4 = Use SSE4.1 + SSSE3 + SSE2 + AVX routine if possible. When AVX can't be used, fallback to 3.
 		 others = Use AVX2 + AVX routine if possible. When AVX2 can't be used, fallback to 4.(default)
 
-### Note:
-
-		- yadifmod2_avx.dll is for AVX supported CPUs.(it is compiled with /arch:AVX).
-
-
 ### Changelog:
 
 	0.0.0(20160305)
@@ -103,6 +98,13 @@
 
 	0.2.0 (20160815)
 		Add Avisynth+MT's planar RGB and 10/12/14bits formats support.
+		
+	0.2.1 (20200513)
+		Use internal CPU check.
+		Remove /arch:AVX2 requirement for AVX2 code.
+		
+	0.2.2 (20200514)
+		Copy frame properties when available
 
 ###Source code:
 
