@@ -5,7 +5,7 @@
 
 ### Info:
 
-	version 0.2.2
+	version 0.2.3
 
 ### Requirement:
 	- Avisynth2.6.0final/Avisynth+r2150 or greater.
@@ -101,10 +101,14 @@
 		
 	0.2.1 (20200513)
 		Use internal CPU check.
-		Remove /arch:AVX2 requirement for AVX2 code.
+		Removed /arch:AVX2 requirement for AVX2 code.
 		
 	0.2.2 (20200514)
-		Copy frame properties when available
+		Copy frame properties when available.
+        
+    0.2.3 (20200523)
+        Fixed high bit-depth output.
+        Fixed crash for mode=2/3 with opt>0.
 
 ###Source code:
 
