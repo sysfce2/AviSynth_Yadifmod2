@@ -108,7 +108,7 @@
         
     0.2.3 (20200523)
         Fixed high bit-depth output.
-        Fixed crash for mode=2/3 with opt>0.
+        Fixed crash for mode=2/3 when opt>0.
 
 ###Source code:
 
