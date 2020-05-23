@@ -139,7 +139,8 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
     if (has_at_least_v8) dst = env->NewVideoFrameP(vi, &curr); else dst = env->NewVideoFrame(vi);
 
     int planes_y[4] = { PLANAR_Y, PLANAR_U, PLANAR_V, PLANAR_A };
-    const int* current_planes = planes_y;
+    int planes_r[4] = { PLANAR_G, PLANAR_B, PLANAR_R, PLANAR_A };
+    const int* current_planes = (vi.IsYUV() || vi.IsYUVA()) ? planes_y : planes_r;
     int planecount = std::min(vi.NumComponents(), 3);
     for (int i = 0; i < planecount; i++)
     {
