@@ -40,7 +40,7 @@
 
 
 
-#define YADIF_MOD_2_VERSION "0.2.2"
+#define YADIF_MOD_2_VERSION "0.2.3"
 
 
 typedef IScriptEnvironment ise_t;
@@ -55,8 +55,6 @@ class YadifMod2 : public GenericVideoFilter {
     int field;
     int mode;
     int prevFirst;
-    int planes[3];
-    int numPlanes;
     bool has_at_least_v8;
 
     proc_filter_t mainProc;
@@ -85,17 +83,6 @@ YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, int bits, arch_t arc
     try { env->CheckVersion(8); }
 
     catch (const AvisynthError&) { has_at_least_v8 = false; }
-    numPlanes = vi.pixel_type & VideoInfo::CS_INTERLEAVED ? 1 : 3;
-
-    if (vi.IsYUV()) {
-        planes[0] = PLANAR_Y;
-        planes[1] = PLANAR_U;
-        planes[2] = PLANAR_V;
-    } else {
-        planes[0] = PLANAR_G;
-        planes[0] = PLANAR_B;
-        planes[0] = PLANAR_R;
-    }
 
     nfSrc = vi.num_frames;
 
@@ -151,10 +138,13 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
     PVideoFrame dst;
     if (has_at_least_v8) dst = env->NewVideoFrameP(vi, &curr); else dst = env->NewVideoFrame(vi);
 
-    for (int p = 0; p < numPlanes; ++p) {
-
-        const int plane = planes[p];
-
+    int planes_y[4] = { PLANAR_Y, PLANAR_U, PLANAR_V, PLANAR_A };
+    const int* current_planes = planes_y;
+    int planecount = std::min(vi.NumComponents(), 3);
+    for (int i = 0; i < planecount; i++)
+    {
+        const int plane = current_planes[i];
+ 
         const uint8_t* currp = curr->GetReadPtr(plane);
         const uint8_t* prevp = prev->GetReadPtr(plane);
         const uint8_t* nextp = next->GetReadPtr(plane);
@@ -215,7 +205,7 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
 
         mainProc(currp + static_cast<int64_t>(begin) * cpitch, prevp + static_cast<int64_t>(begin) * ppitch,
                  nextp + static_cast<int64_t>(begin) * npitch, fm_prev, fm_next,
-                 edeintp + static_cast<int64_t>(begin) * epitch, dstp + static_cast<int64_t>(begin) * dpitch, width,
+                 edeintp + static_cast<int64_t>(begin) * epitch, dstp + static_cast<int64_t>(begin) * dpitch, width / vi.ComponentSize(),
                  cpitch, ppitch, npitch, fm_ppitch, fm_npitch, 2 * epitch,
                  2 * dpitch, count);
     }

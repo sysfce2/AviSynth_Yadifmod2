@@ -40,59 +40,59 @@ template <typename V, typename T, arch_t A>
 static F_INLINE V load(const uint8_t* ptr);
 
 template <>
-F_INLINE __m128 load<__m128, float, USE_SSE2>(const uint8_t* ptr)
+F_INLINE __m128 load<__m128, float, arch_t::USE_SSE2>(const uint8_t* ptr)
 {
     return _mm_loadu_ps(reinterpret_cast<const float*>(ptr));
 }
 template <>
-F_INLINE __m128i load<__m128i, int16_t, USE_SSE2>(const uint8_t* ptr)
+F_INLINE __m128i load<__m128i, int16_t, arch_t::USE_SSE2>(const uint8_t* ptr)
 {
     return _mm_loadu_si128(reinterpret_cast<const __m128i*>(ptr));
 }
 template <>
-F_INLINE __m128i load<__m128i, uint8_t, USE_SSE2>(const uint8_t* ptr)
+F_INLINE __m128i load<__m128i, uint8_t, arch_t::USE_SSE2>(const uint8_t* ptr)
 {
     __m128i t = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(ptr));
     return _mm_unpacklo_epi8(t, _mm_setzero_si128());
 }
 template <>
-F_INLINE __m128i load<__m128i, uint16_t, USE_SSE2>(const uint8_t* ptr)
+F_INLINE __m128i load<__m128i, uint16_t, arch_t::USE_SSE2>(const uint8_t* ptr)
 {
     __m128i t = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(ptr));
     return _mm_unpacklo_epi16(t, _mm_setzero_si128());
 }
 
 template <>
-F_INLINE __m128i load<__m128i, int16_t, USE_SSSE3>(const uint8_t* ptr)
+F_INLINE __m128i load<__m128i, int16_t, arch_t::USE_SSSE3>(const uint8_t* ptr)
 {
-    return load<__m128i, int16_t, USE_SSE2>(ptr);
+    return load<__m128i, int16_t, arch_t::USE_SSE2>(ptr);
 }
 template <>
-F_INLINE __m128i load<__m128i, uint8_t, USE_SSSE3>(const uint8_t* ptr)
+F_INLINE __m128i load<__m128i, uint8_t, arch_t::USE_SSSE3>(const uint8_t* ptr)
 {
     __m128i t = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(ptr));
     return _mm_unpacklo_epi8(t, _mm_setzero_si128());
 }
 template <>
-F_INLINE __m128i load<__m128i, uint16_t, USE_SSSE3>(const uint8_t* ptr)
+F_INLINE __m128i load<__m128i, uint16_t, arch_t::USE_SSSE3>(const uint8_t* ptr)
 {
     __m128i t = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(ptr));
     return _mm_unpacklo_epi16(t, _mm_setzero_si128());
 }
 
 template <>
-F_INLINE __m128i load<__m128i, int16_t, USE_SSE41>(const uint8_t* ptr)
+F_INLINE __m128i load<__m128i, int16_t, arch_t::USE_SSE41>(const uint8_t* ptr)
 {
-    return load<__m128i, int16_t, USE_SSE2>(ptr);
+    return load<__m128i, int16_t, arch_t::USE_SSE2>(ptr);
 }
 template <>
-F_INLINE __m128i load<__m128i, uint8_t, USE_SSE41>(const uint8_t* ptr)
+F_INLINE __m128i load<__m128i, uint8_t, arch_t::USE_SSE41>(const uint8_t* ptr)
 {
     __m128i t = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(ptr));
     return _mm_cvtepu8_epi16(t);
 }
 template <>
-F_INLINE __m128i load<__m128i, uint16_t, USE_SSE41>(const uint8_t* ptr)
+F_INLINE __m128i load<__m128i, uint16_t, arch_t::USE_SSE41>(const uint8_t* ptr)
 {
     __m128i t = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(ptr));
     return _mm_cvtepu16_epi32(t);
@@ -100,24 +100,24 @@ F_INLINE __m128i load<__m128i, uint16_t, USE_SSE41>(const uint8_t* ptr)
 
 #if defined(__AVX__)
 template <>
-F_INLINE __m256 load<__m256, float, USE_AVX>(const uint8_t* ptr)
+F_INLINE __m256 load<__m256, float, arch_t::USE_AVX>(const uint8_t* ptr)
 {
     return _mm256_loadu_ps(reinterpret_cast<const float*>(ptr));
 }
 
 template <>
-F_INLINE __m256i load<__m256i, int16_t, USE_AVX2>(const uint8_t* ptr)
+F_INLINE __m256i load<__m256i, int16_t, arch_t::USE_AVX2>(const uint8_t* ptr)
 {
     return _mm256_loadu_si256(reinterpret_cast<const __m256i*>(ptr));
 }
 template <>
-F_INLINE __m256i load<__m256i, uint8_t, USE_AVX2>(const uint8_t* ptr)
+F_INLINE __m256i load<__m256i, uint8_t, arch_t::USE_AVX2>(const uint8_t* ptr)
 {
     __m128i t = _mm_loadu_si128(reinterpret_cast<const __m128i*>(ptr));
     return _mm256_cvtepu8_epi16(t);
 }
 template <>
-F_INLINE __m256i load<__m256i, uint16_t, USE_AVX2>(const uint8_t* ptr)
+F_INLINE __m256i load<__m256i, uint16_t, arch_t::USE_AVX2>(const uint8_t* ptr)
 {
     __m128i t = _mm_loadu_si128(reinterpret_cast<const __m128i*>(ptr));
     return _mm256_cvtepu16_epi32(t);
@@ -471,45 +471,45 @@ static F_INLINE __m128i abs_diff(const __m128i& x, const __m128i& y)
     return _mm_or_si128(_mm_subs_epu16(x, y), _mm_subs_epu16(y, x));
 }
 template <>
-F_INLINE __m128i abs_diff<uint16_t, USE_SSE2>(const __m128i& x, const __m128i& y)
+F_INLINE __m128i abs_diff<uint16_t, arch_t::USE_SSE2>(const __m128i& x, const __m128i& y)
 {
     return _mm_max_epi32(_mm_sub_epi32(x, y), _mm_sub_epi32(y, x));
 }
 
 template <>
-F_INLINE __m128i abs_diff<uint8_t, USE_SSSE3>(const __m128i& x, const __m128i& y)
+F_INLINE __m128i abs_diff<uint8_t, arch_t::USE_SSSE3>(const __m128i& x, const __m128i& y)
 {
     return _mm_abs_epi16(_mm_sub_epi16(x, y));
 }
 
 template <>
-F_INLINE __m128i abs_diff<int16_t, USE_SSSE3>(const __m128i& x, const __m128i& y)
+F_INLINE __m128i abs_diff<int16_t, arch_t::USE_SSSE3>(const __m128i& x, const __m128i& y)
 {
     return _mm_abs_epi16(_mm_sub_epi16(x, y));
 }
 
 template <>
-F_INLINE __m128i abs_diff<uint16_t, USE_SSSE3>(const __m128i& x, const __m128i& y)
+F_INLINE __m128i abs_diff<uint16_t, arch_t::USE_SSSE3>(const __m128i& x, const __m128i& y)
 {
     return _mm_abs_epi32(_mm_sub_epi32(x, y));
 }
 
 template <>
-F_INLINE __m128i abs_diff<uint8_t, USE_SSE41>(const __m128i& x, const __m128i& y)
+F_INLINE __m128i abs_diff<uint8_t, arch_t::USE_SSE41>(const __m128i& x, const __m128i& y)
 {
-    return abs_diff<uint8_t, USE_SSSE3>(x, y);
+    return abs_diff<uint8_t, arch_t::USE_SSSE3>(x, y);
 }
 
 template <>
-F_INLINE __m128i abs_diff<int16_t, USE_SSE41>(const __m128i& x, const __m128i& y)
+F_INLINE __m128i abs_diff<int16_t, arch_t::USE_SSE41>(const __m128i& x, const __m128i& y)
 {
-    return abs_diff<int16_t, USE_SSSE3>(x, y);
+    return abs_diff<int16_t, arch_t::USE_SSSE3>(x, y);
 }
 
 template <>
-F_INLINE __m128i abs_diff<uint16_t, USE_SSE41>(const __m128i& x, const __m128i& y)
+F_INLINE __m128i abs_diff<uint16_t, arch_t::USE_SSE41>(const __m128i& x, const __m128i& y)
 {
-    return abs_diff<uint16_t, USE_SSSE3>(x, y);
+    return abs_diff<uint16_t, arch_t::USE_SSSE3>(x, y);
 }
 
 #if defined(__AVX__)
@@ -527,7 +527,7 @@ static F_INLINE __m256i abs_diff(const __m256i& x, const __m256i& y)
 
 template <>
 F_INLINE __m256i
-abs_diff<uint16_t, USE_AVX2>(const __m256i& x, const __m256i& y)
+abs_diff<uint16_t, arch_t::USE_AVX2>(const __m256i& x, const __m256i& y)
 {
     return _mm256_abs_epi32(_mm256_sub_epi32(x, y));
 }
@@ -584,7 +584,7 @@ blendv(const __m128i& x, const __m128i& y, const __m128i& m)
 
 template <>
 F_INLINE __m128i
-blendv<USE_SSE41>(const __m128i& x, const __m128i& y, const __m128i& m)
+blendv<arch_t::USE_SSE41>(const __m128i& x, const __m128i& y, const __m128i& m)
 {
     return _mm_blendv_epi8(x, y, m);
 }
