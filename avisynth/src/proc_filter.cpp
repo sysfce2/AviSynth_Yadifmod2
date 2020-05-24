@@ -379,11 +379,6 @@ get_main_proc(int bps, bool spcheck, bool edeint, arch_t arch)
     table[make_tuple(8, false, true,  arch_t::USE_SSE2)] = proc_simd<__m128i, uint8_t, 8, arch_t::USE_SSE2, false, true>;
     table[make_tuple(8, false, false, arch_t::USE_SSE2)] = proc_simd<__m128i, uint8_t, 8, arch_t::USE_SSE2, false, false>;
 
-    table[make_tuple(10, true,  true,  arch_t::USE_SSE2)] = proc_simd<__m128i, int16_t, 16, arch_t::USE_SSE2, true,  true>;
-    table[make_tuple(10, true,  false, arch_t::USE_SSE2)] = proc_simd<__m128i, int16_t, 16, arch_t::USE_SSE2, true,  false>;
-    table[make_tuple(10, false, true,  arch_t::USE_SSE2)] = proc_simd<__m128i, int16_t, 16, arch_t::USE_SSE2, false, true>;
-    table[make_tuple(10, false, false, arch_t::USE_SSE2)] = proc_simd<__m128i, int16_t, 16, arch_t::USE_SSE2, false, false>;
-
     table[make_tuple(16, true,  true,  arch_t::USE_SSE2)] = proc_simd<__m128i, uint16_t, 8, arch_t::USE_SSE2, true,  true>;
     table[make_tuple(16, true,  false, arch_t::USE_SSE2)] = proc_simd<__m128i, uint16_t, 8, arch_t::USE_SSE2, true,  false>;
     table[make_tuple(16, false, true,  arch_t::USE_SSE2)] = proc_simd<__m128i, uint16_t, 8, arch_t::USE_SSE2, false, true>;
@@ -399,11 +394,6 @@ get_main_proc(int bps, bool spcheck, bool edeint, arch_t arch)
     table[make_tuple(8, false, true,  arch_t::USE_SSSE3)] = proc_simd<__m128i, uint8_t, 8, arch_t::USE_SSSE3, false, true>;
     table[make_tuple(8, false, false, arch_t::USE_SSSE3)] = proc_simd<__m128i, uint8_t, 8, arch_t::USE_SSSE3, false, false>;
 
-    table[make_tuple(10, true,  true,  arch_t::USE_SSSE3)] = proc_simd<__m128i, int16_t, 16, arch_t::USE_SSSE3, true,  true>;
-    table[make_tuple(10, true,  false, arch_t::USE_SSSE3)] = proc_simd<__m128i, int16_t, 16, arch_t::USE_SSSE3, true,  false>;
-    table[make_tuple(10, false, true,  arch_t::USE_SSSE3)] = proc_simd<__m128i, int16_t, 16, arch_t::USE_SSSE3, false, true>;
-    table[make_tuple(10, false, false, arch_t::USE_SSSE3)] = proc_simd<__m128i, int16_t, 16, arch_t::USE_SSSE3, false, false>;
-
     table[make_tuple(16, true,  true,  arch_t::USE_SSSE3)] = proc_simd<__m128i, uint16_t, 8, arch_t::USE_SSSE3, true,  true>;
     table[make_tuple(16, true,  false, arch_t::USE_SSSE3)] = proc_simd<__m128i, uint16_t, 8, arch_t::USE_SSSE3, true,  false>;
     table[make_tuple(16, false, true,  arch_t::USE_SSSE3)] = proc_simd<__m128i, uint16_t, 8, arch_t::USE_SSSE3, false, true>;
@@ -413,11 +403,6 @@ get_main_proc(int bps, bool spcheck, bool edeint, arch_t arch)
     table[make_tuple(8, true,  false, arch_t::USE_SSE41)] = proc_simd<__m128i, uint8_t, 8, arch_t::USE_SSE41, true,  false>;
     table[make_tuple(8, false, true,  arch_t::USE_SSE41)] = proc_simd<__m128i, uint8_t, 8, arch_t::USE_SSE41, false, true>;
     table[make_tuple(8, false, false, arch_t::USE_SSE41)] = proc_simd<__m128i, uint8_t, 8, arch_t::USE_SSE41, false, false>;
-
-    table[make_tuple(10, true,  true,  arch_t::USE_SSE41)] = proc_simd<__m128i, int16_t, 16, arch_t::USE_SSE41, true,  true>;
-    table[make_tuple(10, true,  false, arch_t::USE_SSE41)] = proc_simd<__m128i, int16_t, 16, arch_t::USE_SSE41, true,  false>;
-    table[make_tuple(10, false, true,  arch_t::USE_SSE41)] = proc_simd<__m128i, int16_t, 16, arch_t::USE_SSE41, false, true>;
-    table[make_tuple(10, false, false, arch_t::USE_SSE41)] = proc_simd<__m128i, int16_t, 16, arch_t::USE_SSE41, false, false>;
 
     table[make_tuple(16, true,  true,  arch_t::USE_SSE41)] = proc_simd<__m128i, uint16_t, 8, arch_t::USE_SSE41, true,  true>;
     table[make_tuple(16, true,  false, arch_t::USE_SSE41)] = proc_simd<__m128i, uint16_t, 8, arch_t::USE_SSE41, true,  false>;
@@ -433,11 +418,6 @@ get_main_proc(int bps, bool spcheck, bool edeint, arch_t arch)
     table[make_tuple(8, true,  false, arch_t::USE_AVX2)] = proc_simd<__m256i, uint8_t, 16, arch_t::USE_AVX2, true,  false>;
     table[make_tuple(8, false, true,  arch_t::USE_AVX2)] = proc_simd<__m256i, uint8_t, 16, arch_t::USE_AVX2, false, true>;
     table[make_tuple(8, false, false, arch_t::USE_AVX2)] = proc_simd<__m256i, uint8_t, 16, arch_t::USE_AVX2, false, false>;
-
-    table[make_tuple(10, true,  true,  arch_t::USE_AVX2)] = proc_simd<__m256i, int16_t, 32, arch_t::USE_AVX2, true,  true>;
-    table[make_tuple(10, true,  false, arch_t::USE_AVX2)] = proc_simd<__m256i, int16_t, 32, arch_t::USE_AVX2, true,  false>;
-    table[make_tuple(10, false, true,  arch_t::USE_AVX2)] = proc_simd<__m256i, int16_t, 32, arch_t::USE_AVX2, false, true>;
-    table[make_tuple(10, false, false, arch_t::USE_AVX2)] = proc_simd<__m256i, int16_t, 32, arch_t::USE_AVX2, false, false>;
 
     table[make_tuple(16, true,  true,  arch_t::USE_AVX2)] = proc_simd<__m256i, uint16_t, 16, arch_t::USE_AVX2, true,  true>;
     table[make_tuple(16, true,  false, arch_t::USE_AVX2)] = proc_simd<__m256i, uint16_t, 16, arch_t::USE_AVX2, true,  false>;

@@ -38,15 +38,7 @@
 
 #include "common.h"
 
-
-
-#define YADIF_MOD_2_VERSION "0.2.3"
-
-
-typedef IScriptEnvironment ise_t;
-
-
-
+#define YADIF_MOD_2_VERSION "0.2.4"
 
 class YadifMod2 : public GenericVideoFilter {
     PClip edeint;
@@ -62,21 +54,20 @@ class YadifMod2 : public GenericVideoFilter {
 
 public:
     YadifMod2(PClip child, PClip edeint, int order, int field, int mode,
-              int bits, arch_t arch, ise_t* env);
+             arch_t arch, IScriptEnvironment* env);
     ~YadifMod2() {}
-    PVideoFrame __stdcall GetFrame(int n, ise_t* env);
+    PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
     int __stdcall SetCacheHints(int hints, int)
     {
         return hints == CACHE_GET_MTMODE ? MT_NICE_FILTER : 0;
     }
 };
 
-
 extern proc_filter_t get_main_proc(int bits, bool sp_check, bool has_edeint, arch_t arch);
 extern interpolate_t get_interp(int bytes_per_sample);
 
 
-YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, int bits, arch_t arch, ise_t* env) :
+YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, arch_t arch, IScriptEnvironment* env) :
     GenericVideoFilter(c), edeint(e), order(o), field(f), mode(m)
 {
     has_at_least_v8 = true;
@@ -102,12 +93,16 @@ YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, int bits, arch_t arc
 
     interp = get_interp(vi.ComponentSize());
 
-    if (arch == arch_t::NO_SIMD && bits == 10) {
+    int bits;
+    if (vi.BitsPerComponent() == 8)
+        bits = 8;
+    else if (vi.BitsPerComponent() <= 16)
         bits = 16;
-    }
-    if (arch != arch_t::NO_SIMD && bits == 32) {
+    else
+        bits = 32;
+
+    if (arch != arch_t::NO_SIMD && bits == 32)
         arch = arch < arch_t::USE_AVX ? arch_t::USE_SSE2 : arch_t::USE_AVX;
-    }
 
     mainProc = get_main_proc(bits, mode < 2, edeint != nullptr, arch);
 
@@ -118,7 +113,7 @@ YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, int bits, arch_t arc
 }
 
 
-PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
+PVideoFrame __stdcall YadifMod2::GetFrame(int n, IScriptEnvironment* env)
 {
     PVideoFrame edeint;
     if (this->edeint) {
@@ -215,7 +210,7 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, ise_t* env)
 }
 
 
-static arch_t get_arch(int opt, ise_t* env) noexcept
+static arch_t get_arch(int opt, IScriptEnvironment* env) noexcept
 {
     const bool has_sse2 = env->GetCPUFlags() & CPUF_SSE2;
     const bool has_ssse3 = env->GetCPUFlags() & CPUF_SSSE3;
@@ -253,30 +248,13 @@ static inline void validate(bool cond, const char* msg)
     }
 }
 
-
-static int get_bits(int pixel_type)
-{
-    int bits = pixel_type & VideoInfo::CS_Sample_Bits_Mask;
-    switch (bits) {
-    case VideoInfo::CS_Sample_Bits_8: return 8;
-    case VideoInfo::CS_Sample_Bits_10: return 10;
-    case VideoInfo::CS_Sample_Bits_12:
-    case VideoInfo::CS_Sample_Bits_14:
-    case VideoInfo::CS_Sample_Bits_16: return 16;
-    case VideoInfo::CS_Sample_Bits_32: return 32;
-    }
-    return 0;
-}
-
-
 static AVSValue __cdecl
-create_yadifmod2(AVSValue args, void* user_data, ise_t* env)
+create_yadifmod2(AVSValue args, void* user_data, IScriptEnvironment* env)
 {
     try {
         PClip child = args[0].AsClip();
         const VideoInfo& vi = child->GetVideoInfo();
         validate(!vi.IsPlanar(), "input clip must be a planar format.");
-        validate(vi.IsYUVA() || vi.IsPlanarRGBA(), "alpha is not supported.");
 
         int order = args[1].AsInt(-1);
         validate(order < -1 || order > 1, "order must be set to -1, 0 or 1.");
@@ -299,14 +277,10 @@ create_yadifmod2(AVSValue args, void* user_data, ise_t* env)
                      "edeint clip's number of frames doesn't match.");
         }
 
-        bool is_plus = env->FunctionExists("SetFilterMTMode");
-        int sample_bytes = vi.BytesFromPixels(1);
-
-        int bits = get_bits(vi.pixel_type);
-
         arch_t arch = get_arch(args[5].AsInt(-1), env);
+        validate(args[5].AsInt() < 0 || args[5].AsInt() > 4, "opt must be between 0..4.");
 
-        return new YadifMod2(child, edeint, order, field, mode, bits, arch, env);
+        return new YadifMod2(child, edeint, order, field, mode, arch, env);
 
     } catch (std::runtime_error& e) {
         env->ThrowError("yadifmod2: %s", e.what());
@@ -319,7 +293,7 @@ static const AVS_Linkage* AVS_linkage = nullptr;
 
 
 extern "C" __declspec(dllexport) const char* __stdcall
-AvisynthPluginInit3(ise_t* env, const AVS_Linkage* vectors)
+AvisynthPluginInit3(IScriptEnvironment* env, const AVS_Linkage* vectors)
 {
     AVS_linkage = vectors;
 
