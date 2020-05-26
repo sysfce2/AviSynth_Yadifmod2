@@ -5,7 +5,7 @@
 
 ### Info:
 
-	version 0.2.3
+	version 0.2.4
 
 ### Requirement:
 	- Avisynth2.6.0final/Avisynth+r2150 or greater.
@@ -18,7 +18,7 @@
 
 ####	clip -
 
-		All planar 8/10/12/14/16/float formats except alpha are supported.
+		All planar 8/10/12/14/16/float formats are supported.
 
 ####	order -
 
@@ -109,6 +109,9 @@
     0.2.3 (20200523)
         Fixed high bit-depth output.
         Fixed crash for mode=2/3 when opt>0.
+        
+    0.2.4 (20200526)
+        Allow clips with alpha plane.
 
 ###Source code:
 
