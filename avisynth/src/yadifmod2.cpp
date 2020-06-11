@@ -94,15 +94,17 @@ YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, arch_t arch, IScript
     interp = get_interp(vi.ComponentSize());
 
     int bits;
-    if (vi.BitsPerComponent() == 8)
+    if (vi.ComponentSize() == 1)
         bits = 8;
-    else if (vi.BitsPerComponent() <= 16)
+    else if (vi.ComponentSize() == 2)
         bits = 16;
     else
         bits = 32;
 
     if (arch != arch_t::NO_SIMD && bits == 32)
         arch = arch < arch_t::USE_AVX ? arch_t::USE_SSE2 : arch_t::USE_AVX;
+    else if (arch == arch_t::USE_AVX && bits != 32)
+        arch = arch_t::USE_SSE41;
 
     mainProc = get_main_proc(bits, mode < 2, edeint != nullptr, arch);
 
@@ -218,24 +220,24 @@ static arch_t get_arch(int opt, IScriptEnvironment* env) noexcept
     const bool has_avx = env->GetCPUFlags() & CPUF_AVX;
     const bool has_avx2 = env->GetCPUFlags() & CPUF_AVX2;
 
-    if (opt == 0 || !has_sse2) {
+    if (opt == 0 || !has_sse2)
         return arch_t::NO_SIMD;
-    }
-    if (opt == 1 || !has_ssse3) {
+
+    if (opt == 1 || !has_ssse3)
         return arch_t::USE_SSE2;
-    }
-    if (opt == 2 || !has_sse41) {
+
+    if (opt == 2 || !has_sse41)
         return arch_t::USE_SSSE3;
-    }
+
 #if !defined(__AVX__)
     return arch_t::USE_SSE41;
 #else
-    if (opt == 3 || !has_avx) {
+    if (opt == 3 || !has_avx)
         return arch_t::USE_SSE41;
-    }
-    if (opt == 4 || !has_avx2) {
+
+    if (opt == 4 || !has_avx2)
         return arch_t::USE_AVX;
-    }
+
     return arch_t::USE_AVX2;
 #endif
 }

@@ -112,6 +112,9 @@
         
     0.2.4 (20200526)
         Allow clips with alpha plane.
+        
+    0.2.5 (20200612)
+        Fixed crashing when opt=4 and the bit depth is not 32-bit.
 
 ###Source code:
 
