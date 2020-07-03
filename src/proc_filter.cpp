@@ -30,7 +30,11 @@
 
 #include "common.h"
 
+#ifndef __GNUC__
 #define F_INLINE __forceinline
+#else
+#define F_INLINE __attribute__((always_inline)) inline
+#endif
 
 static F_INLINE int average2(const int x, const int y) noexcept
 {

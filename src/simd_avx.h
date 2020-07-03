@@ -32,7 +32,11 @@
 #endif
 
 
+#ifndef __GNUC__
 #define F_INLINE __forceinline
+#else
+#define F_INLINE __attribute__((always_inline)) inline
+#endif
 
 
 namespace simd {

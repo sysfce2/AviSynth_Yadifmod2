@@ -3,7 +3,9 @@
 
 #include <cstdint>
 #include <algorithm>
-
+#ifndef _WIN32
+#include <avisynth/avisynth.h>
+#endif
 
 enum class arch_t {
     NO_SIMD,
