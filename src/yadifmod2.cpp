@@ -28,8 +28,9 @@
 
 
 #include <stdexcept>
-
+#ifdef _WIN32
 #include "avisynth.h"
+#endif
 #include "common.h"
 
 #define WIN32_LEAN_AND_MEAN
@@ -39,7 +40,11 @@
 
 #define YADIF_MOD_2_VERSION "0.2.6"
 
+#ifndef __GNUC__
 #define F_INLINE __forceinline
+#else
+#define F_INLINE __attribute__((always_inline)) inline
+#endif
 
 
 static F_INLINE int average(const int x, const int y) noexcept
@@ -345,8 +350,10 @@ create_yadifmod2(AVSValue args, void* user_data, IScriptEnvironment* env)
     return 0;
 }
 
-
-static const AVS_Linkage* AVS_linkage = nullptr;
+#ifdef _WIN32
+static
+#endif
+const AVS_Linkage* AVS_linkage = nullptr;
 
 
 extern "C" __declspec(dllexport) const char* __stdcall
