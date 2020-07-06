@@ -7,6 +7,13 @@
 #include <avisynth/avisynth.h>
 #endif
 
+#ifndef __GNUC__
+#define F_INLINE __forceinline
+#else
+#define F_INLINE __attribute__((always_inline)) inline
+#endif
+
+
 enum class arch_t {
     NO_SIMD,
     USE_SSE2,
