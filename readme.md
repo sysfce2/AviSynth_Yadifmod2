@@ -1,11 +1,8 @@
-#yadifmod2
+# yadifmod2
+
 ## Yet Another Deinterlacing Filter mod  for Avisynth2.6/Avisynth+
 
 	yadifmod2 = yadif + yadifmod
-
-### Info:
-
-	version 0.2.6
 
 ### Requirement:
 	- Avisynth2.6.0final/Avisynth+r2150 or greater.
@@ -67,6 +64,31 @@
 		 3 = Use SSE4.1 + SSSE3 + SSE2 + SSE routine if possible. When SSE4.1 can't be used, fallback to 2.
 		 4 = Use SSE4.1 + SSSE3 + SSE2 + AVX routine if possible. When AVX can't be used, fallback to 3.
 		 5 = Use AVX2 + AVX routine if possible. When AVX2 can't be used, fallback to 4. (default)
+         
+### Building:
+
+#### Windows
+
+    Use solution files.
+
+#### Linux
+
+##### Requirements
+
+    Git
+    C++11 compiler
+    CMake >= 3.16
+
+```
+git clone https://github.com/Asd-g/yadifmod2 && \
+cd yadifmod2 && \
+mkdir build && \
+cd build && \
+
+cmake ..
+make -j$(nproc)
+sudo make install
+```
 
 ### Changelog:
 
@@ -118,8 +140,6 @@
         
     0.2.6 (20200630)
         Changed the opt value for AVX2 + AVX routine.
-
-###Source code:
-
-	https://github.com/chikuzen/yadifmod2/
-
+        
+    0.2.7 (20210207)
+        Set frame property _FieldBased to 0.

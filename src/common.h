@@ -3,9 +3,8 @@
 
 #include <cstdint>
 #include <algorithm>
-#ifndef _WIN32
-#include <avisynth/avisynth.h>
-#endif
+
+#include "avisynth.h"
 
 #ifndef __GNUC__
 #define F_INLINE __forceinline

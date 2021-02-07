@@ -28,23 +28,11 @@
 
 
 #include <stdexcept>
-#ifdef _WIN32
-#include "avisynth.h"
-#endif
+
 #include "common.h"
 
-#define WIN32_LEAN_AND_MEAN
-#define VC_EXTRALEAN
-#define NOMINMAX
-#define NOGDI
 
-#define YADIF_MOD_2_VERSION "0.2.6"
-
-#ifndef __GNUC__
-#define F_INLINE __forceinline
-#else
-#define F_INLINE __attribute__((always_inline)) inline
-#endif
+#define YADIF_MOD_2_VERSION "0.2.7"
 
 
 static F_INLINE int average(const int x, const int y) noexcept
@@ -143,31 +131,29 @@ YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, arch_t arch, IScript
 
     interp = get_interp(vi.ComponentSize());
 
-    int bits;
-    if (vi.ComponentSize() == 1)
-        bits = 8;
-    else if (vi.ComponentSize() == 2)
-        bits = 16;
-    else
-        bits = 32;
+    const int bits = [&]() {
+        switch (vi.ComponentSize())
+        {
+            case 1: return 8;
+            case 2:; return 16;
+            default: return 32;
+        }
+    }();
 
     if (arch != arch_t::NO_SIMD && bits == 32)
         arch = arch < arch_t::USE_AVX ? arch_t::USE_SSE2 : arch_t::USE_AVX;
     else if (arch == arch_t::USE_AVX && bits != 32)
         arch = arch_t::USE_SSE41;
 
-    if (arch == arch_t::NO_SIMD)
-        mainProc = get_main_proc(bits, mode < 2, edeint != nullptr, arch);
-    else if (arch == arch_t::USE_SSE2)
-        mainProc = get_main_proc_sse2(bits, mode < 2, edeint != nullptr, arch);
-    else if (arch == arch_t::USE_SSSE3)
-        mainProc = get_main_proc_ssse3(bits, mode < 2, edeint != nullptr, arch);
-    else if (arch == arch_t::USE_SSE41)
-        mainProc = get_main_proc_sse41(bits, mode < 2, edeint != nullptr, arch);
-    else if (arch == arch_t::USE_AVX)
-        mainProc = get_main_proc_avx(bits, mode < 2, edeint != nullptr, arch);
-    else
-        mainProc = get_main_proc_avx2(bits, mode < 2, edeint != nullptr, arch);
+    switch (arch)
+    {
+        case arch_t::NO_SIMD: mainProc = get_main_proc(bits, mode < 2, edeint != nullptr, arch); break;
+        case arch_t::USE_SSE2: mainProc = get_main_proc_sse2(bits, mode < 2, edeint != nullptr, arch); break;
+        case arch_t::USE_SSSE3: mainProc = get_main_proc_ssse3(bits, mode < 2, edeint != nullptr, arch); break;
+        case arch_t::USE_SSE41: mainProc = get_main_proc_sse41(bits, mode < 2, edeint != nullptr, arch); break;
+        case arch_t::USE_AVX: mainProc = get_main_proc_avx(bits, mode < 2, edeint != nullptr, arch); break;
+        default: mainProc = get_main_proc_avx2(bits, mode < 2, edeint != nullptr, arch); break;
+    }      
 
     child->SetCacheHints(CACHE_WINDOW, 3);
     if (edeint) {
@@ -178,10 +164,7 @@ YadifMod2::YadifMod2(PClip c, PClip e, int o, int f, int m, arch_t arch, IScript
 
 PVideoFrame __stdcall YadifMod2::GetFrame(int n, IScriptEnvironment* env)
 {
-    PVideoFrame edeint;
-    if (this->edeint) {
-        edeint = this->edeint->GetFrame(n, env);
-    }
+    PVideoFrame edeint = (this->edeint) ? this->edeint->GetFrame(n, env) : nullptr;
 
     int ft = field;
     if (mode == 1 || mode == 3) {
@@ -193,8 +176,7 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, IScriptEnvironment* env)
     auto curr = child->GetFrame(n, env);
     auto prev = child->GetFrame(n == 0 ? prevFirst : n - 1, env);
 
-    PVideoFrame dst;
-    if (has_at_least_v8) dst = env->NewVideoFrameP(vi, &curr); else dst = env->NewVideoFrame(vi);
+    PVideoFrame dst = env->NewVideoFrame(vi);
 
     int planes_y[4] = { PLANAR_Y, PLANAR_U, PLANAR_V, PLANAR_A };
     int planes_r[4] = { PLANAR_G, PLANAR_B, PLANAR_R, PLANAR_A };
@@ -269,17 +251,23 @@ PVideoFrame __stdcall YadifMod2::GetFrame(int n, IScriptEnvironment* env)
                  2 * dpitch, count);
     }
 
+    if (has_at_least_v8)
+    {
+        env->copyFrameProps(curr, dst);
+        env->propSetInt(env->getFramePropsRW(dst), "_FieldBased", 0, 0);
+    }
+
     return dst;
 }
 
 
 static arch_t get_arch(int opt, IScriptEnvironment* env) noexcept
 {
-    const bool has_sse2 = env->GetCPUFlags() & CPUF_SSE2;
-    const bool has_ssse3 = env->GetCPUFlags() & CPUF_SSSE3;
-    const bool has_sse41 = env->GetCPUFlags() & CPUF_SSE4_1;
-    const bool has_avx = env->GetCPUFlags() & CPUF_AVX;
-    const bool has_avx2 = env->GetCPUFlags() & CPUF_AVX2;
+    const bool has_sse2 = !!(env->GetCPUFlags() & CPUF_SSE2);
+    const bool has_ssse3 = !!(env->GetCPUFlags() & CPUF_SSSE3);
+    const bool has_sse41 = !!(env->GetCPUFlags() & CPUF_SSE4_1);
+    const bool has_avx = !!(env->GetCPUFlags() & CPUF_AVX);
+    const bool has_avx2 = !!(env->GetCPUFlags() & CPUF_AVX2);
 
     if (opt == 0 || !has_sse2)
         return arch_t::NO_SIMD;
@@ -350,11 +338,7 @@ create_yadifmod2(AVSValue args, void* user_data, IScriptEnvironment* env)
     return 0;
 }
 
-#ifdef _WIN32
-static
-#endif
 const AVS_Linkage* AVS_linkage = nullptr;
-
 
 extern "C" __declspec(dllexport) const char* __stdcall
 AvisynthPluginInit3(IScriptEnvironment* env, const AVS_Linkage* vectors)
