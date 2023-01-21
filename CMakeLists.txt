@@ -36,6 +36,7 @@ set_source_files_properties(src/proc_filter_avx2.cpp PROPERTIES COMPILE_OPTIONS 
 
 target_include_directories(yadifmod2 PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_INSTALL_PREFIX}/include/avisynth
     /usr/local/include/avisynth
 )
 

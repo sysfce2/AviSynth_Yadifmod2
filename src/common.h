@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <algorithm>
 
-#include "avisynth.h"
+#include <avisynth.h>
 
 #ifndef __GNUC__
 #define F_INLINE __forceinline
