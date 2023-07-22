@@ -12,7 +12,6 @@ vapoursynth/build/.vs/*
 *.db
 *.filters
 *.user
-*.sln
 *.sdf
 *.suo
 *.vspx
