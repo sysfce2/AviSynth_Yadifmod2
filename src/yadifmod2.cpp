@@ -32,7 +32,7 @@
 #include "common.h"
 
 
-#define YADIF_MOD_2_VERSION "0.2.7"
+#define YADIF_MOD_2_VERSION "0.2.8"
 
 
 static F_INLINE int average(const int x, const int y) noexcept
@@ -303,6 +303,7 @@ create_yadifmod2(AVSValue args, void* user_data, IScriptEnvironment* env)
         PClip child = args[0].AsClip();
         const VideoInfo& vi = child->GetVideoInfo();
         validate(!vi.IsPlanar(), "input clip must be a planar format.");
+        validate(vi.Is420() && vi.height % 4, "height must be mod4.");
 
         int order = args[1].AsInt(-1);
         validate(order < -1 || order > 1, "order must be set to -1, 0 or 1.");
