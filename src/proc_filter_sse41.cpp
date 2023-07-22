@@ -206,8 +206,10 @@ proc_simd(const uint8_t* currp, const uint8_t* prevp, const uint8_t* nextp,
     const uint8_t* nt = nextp - nstride;
     const uint8_t* nb = nextp + nstride;
     const uint8_t* fmpt = fm_prev - fm_pstride;
+    [[maybe_unused]]
     const uint8_t* fmpb = fm_prev + fm_pstride;
     const uint8_t* fmnt = fm_next - fm_nstride;
+    [[maybe_unused]]
     const uint8_t* fmnb = fm_next + fm_nstride;
 
     cstride *= 2;
